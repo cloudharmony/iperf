@@ -701,6 +701,7 @@ class IperfTest {
           'iperf_udp',
           'iperf_warmup:',
           'iperf_window:',
+          'iperf_zerocopy',
           'meta_compute_service:',
           'meta_compute_service_id:',
           'meta_cpu:',
