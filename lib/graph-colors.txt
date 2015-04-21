@@ -1,0 +1,10 @@
+# this file defines colors that will be used in report graphs
+5DA5DA # blue
+F15854 # red
+60BD68 # green
+FAA43A # orange
+B2912F # brown
+F17CB0 # pink
+B276B2 # purple
+DECF3F # yellow
+4D4D4D # gray

@@ -1,0 +1,41 @@
+<article<?php if ($pageNum > 1) echo ' style="page-break-before: always"'; ?>>
+	<header>
+	  <table class="meta">
+	  	<tr><th colspan="8"><?php echo strtoupper($params['test']['Protocol']) ?> Iperf Test Report</th></tr>
+	  	<tr>
+	  		<td colspan="3" style="width:50%"><label>Test Run:</label><span><?php echo $params['test']['Started'] ?></span></td>
+	  		<td colspan="3" style="width:50%"><label>Report Generated:</label><span><?php echo date(OltpBenchTest::OLTP_BENCH_DATE_FORMAT) ?></span></td>
+		    <td colspan="2">Page <?php echo $testPageNum ?> of <?php echo $testPages ?></td>
+	  	</tr>
+		  <tr>
+		    <td style="width:12%">Service:</td>
+		    <td colspan="2" style="width:25%" class="normal"><?php echo isset($this->options['meta_compute_service']) ? $this->options['meta_compute_service'] : $this->options['meta_compute_service_id'] ?></td>
+		    <td style="width:13%">Instance Type:</td>
+		    <td colspan="2" style="width:25%" class="normal"><?php echo isset($this->options['meta_instance_id']) ? $this->options['meta_instance_id'] : '' ?></td>
+		    <td colspan="2" style="width:25%; padding:7px 0 5px 0"><a href="https://cloudharmony.com"><img alt="" src="logo.png"></a></td>
+		  </tr>
+	    <tr>
+	      <td colspan="2" class="platform">Platform</td>
+	      <td colspan="2" class="database">Server</td>
+	      <td colspan="2" class="test">Settings</td>
+	      <td colspan="2" class="result">Results</td>
+	    </tr>
+	    <?php foreach($headers as $cols) { ?>
+      <tr class="smaller">
+        <?php foreach($cols as $i => $col) { ?>
+        <td class="<?php echo $col['class'] ?>"><?php echo $col['label'] ?></td>
+        <td class="normal <?php echo $col['class'] ?>"><?php echo $col['value'] ?></td>
+        <?php } ?>
+      </tr>
+	    <?php } ?>
+	    <tr>
+	      <td colspan="8" class="bottom"><?php echo sprintf('%s - %s', $params['test']['Protocol'], $label)  ?></td>
+	    </tr>
+	  </table>
+	</header>
+	
+	<section>
+    <?php echo $graph ?>
+	</section>
+	
+</article>
