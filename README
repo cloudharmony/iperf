@@ -19,6 +19,10 @@ The following runtime parameters and environment metadata may be specified
                             
 * collectd_rrd_dir          Location where collectd rrd files are stored - 
                             default is /var/lib/collectd/rrd
+                            
+* drop_final                If set, this number of final bandwidth/jitter/loss 
+                            measurements will be removed from each set of 
+                            results
 
 * font_size                 The base font size pt to use in reports and graphs. 
                             All text will be relative to this size (i.e. 
@@ -73,8 +77,8 @@ The following runtime parameters and environment metadata may be specified
 * iperf_listen              When --iperf_reverse is used, the client will open
                             an port for the server to connect to for 
                             reverse/downlink tests. By default, the test 
-                            harness will use a random port number between 30000
-                            and 60000. Use this parameter to set an explicit 
+                            harness will use a random port number between 49152
+                            and 65535. Use this parameter to set an explicit 
                             port number for server => client tests
                             
 * iperf_mss                 Attempt to set the TCP maximum segment size (MSS) 

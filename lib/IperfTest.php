@@ -741,10 +741,11 @@ class IperfTest {
         $sysInfo = get_sys_info();
         $defaults = array(
           'collectd_rrd_dir' => '/var/lib/collectd/rrd',
+          'drop_final' => 0,
           'font_size' => 9,
           'iperf_bandwidth' => '1M',
           'iperf_interval' => 1,
-          'iperf_listen' => rand(30000, 60000),
+          'iperf_listen' => rand(49152, 65535),
           'iperf_parallel' => 1,
           'iperf_time' => 10,
           'iperf_ttl' => 1,
@@ -760,6 +761,7 @@ class IperfTest {
         $opts = array(
           'collectd_rrd',
           'collectd_rrd_dir:',
+          'drop_final:',
           'font_size:',
           'ignore_uplink',
           'iperf_bandwidth:',
@@ -997,7 +999,7 @@ class IperfTest {
           
           if (round($stop - $start) == $this->options['iperf_interval'] && $pieces[2] > 0) {
             // change to downlink
-            if ($lstart && $start < $lstart) {
+            if ($lstart && $start < $lstart && ($lstart - $start) > 5) {
               $direction = 'down';
               $results[] = $result;
               $result = array();
@@ -1042,7 +1044,7 @@ class IperfTest {
         
         // generate statistical values
         foreach(array_keys($results) as $i) {
-          if (!isset($results[$i]['bandwidth_values']) || !count($results[$i]['bandwidth_values'])) {
+          if (!isset($results[$i]['bandwidth_values']) || count($results[$i]['bandwidth_values']) < 5) {
             unset($results[$i]);
             continue;
           }
@@ -1051,6 +1053,10 @@ class IperfTest {
             if (isset($results[$i][$key]) && !count($results[$i][$key])) unset($results[$i][$key]);
             if (isset($results[$i][$key])) {
               $results[$i][$key] = array_values($results[$i][$key]);
+              if (isset($this->options['drop_final']) && $this->options['drop_final'] > 0 && count($results[$i][$key]) > $this->options['drop_final']) {
+                print_msg(sprintf('Removing final %d metrics from %s with %d metrics', $this->options['drop_final'], $attr, count($results[$i][$key])), $this->verbose, __FILE__, __LINE__);
+                $results[$i][$key] = array_slice($results[$i][$key], 0, $this->options['drop_final']*-1);
+              }
               $values = array();
               foreach($results[$i][$key] as $val) $values[] = $val;
               sort($values);
@@ -1121,6 +1127,7 @@ class IperfTest {
   public function validateRunOptions() {
     $options = $this->getRunOptions();
     $validate = array(
+      'drop_final' => array('min' => 0),
       'font_size' => array('min' => 6, 'max' => 64),
       'output' => array('write' => TRUE),
       'iperf_bandwidth' => array('regex' => '/^[0-9\.]+[km%]$/i'),
