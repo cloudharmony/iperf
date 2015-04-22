@@ -15,16 +15,18 @@
 		    <td colspan="2" style="width:25%; padding:7px 0 5px 0"><a href="https://cloudharmony.com"><img alt="" src="logo.png"></a></td>
 		  </tr>
 	    <tr>
-	      <td colspan="2" class="platform">Platform</td>
+	      <td colspan="<?php print(isset($params['server']) ? 2 : 4) ?>" class="platform">Platform</td>
+	      <?php if (isset($params['server'])) { ?>
 	      <td colspan="2" class="server">Server</td>
+	      <?php } ?>
 	      <td colspan="2" class="test">Settings</td>
 	      <td colspan="2" class="result">Results</td>
 	    </tr>
 	    <?php foreach($headers as $cols) { ?>
       <tr class="smaller">
         <?php foreach($cols as $i => $col) { ?>
-        <td class="<?php echo $col['class'] ?>"><?php echo $col['label'] ?></td>
-        <td class="normal <?php echo $col['class'] ?>"><?php echo $col['value'] ?></td>
+        <td class="<?php echo $col['class'] ?>"<?php if (!$i && !isset($params['server'])) echo ' colspan="2"' ?>><?php echo $col['label'] ?></td>
+        <td class="normal <?php echo $col['class'] ?>"<?php if (!$i && !isset($params['server'])) echo ' colspan="2"' ?>><?php echo $col['value'] ?></td>
         <?php } ?>
       </tr>
 	    <?php } ?>

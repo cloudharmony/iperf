@@ -40,6 +40,11 @@ class IperfTest {
   const IPERF_TEST_OPTIONS_FILE_NAME = '.options';
   
   /**
+   * actual bandwidth used for UDP tests (indexed by server)
+   */
+  private $bandwidth = array();
+  
+  /**
    * optional results directory object was instantiated for
    */
   private $dir;
@@ -187,7 +192,6 @@ class IperfTest {
           $settings['yMin'] = 0;
           $settings['yFloatPrec'] = 0;
           $settings['yMax'] = '20%';
-          $keys = array_keys($coords);
           if ($graph = $this->generateGraph($dir, sprintf('%s-%s-histogram', $prefix, $attr), $coords, sprintf('%s (%s)', ucwords($attr == 'loss' ? 'datagram loss' : $attr), $attr == 'bandwidth' ? 'Mb/s' : ($attr == 'jitter' ? 'ms' : '%')), 'Samples', NULL, $settings, TRUE, 'histogram')) $graphs[sprintf('%s Histogram - %s', ucwords($attr == 'loss' ? 'datagram loss' : $attr), $result['iperf_server'])] = $graph;
         }
       }
@@ -482,6 +486,7 @@ class IperfTest {
     if (is_dir($dir) && is_writable($dir) && ($fp = fopen($htmlFile = sprintf('%s/index.html', $dir), 'w'))) {
       print_msg(sprintf('Initiating report creation in directory %s', $dir), $this->verbose, __FILE__, __LINE__);
       
+      $graphs = array();
       $reportsDir = dirname(dirname(__FILE__)) . '/reports';
       $fontSize = $this->options['font_size'];
       
@@ -499,64 +504,147 @@ class IperfTest {
       exec(sprintf('cp %s/font.ttf %s/', $reportsDir, $dir));
       exec(sprintf('cp %s/logo.png %s/', $reportsDir, $dir));
       
-      $testPages = isset($this->options['iperf_udp']) ? (isset($this->options['iperf_reverse']) && isset($this->options['skip_bandwidth_graphs']) ? 4 : 6) : 2;
+      $pagesPerServer = isset($this->options['iperf_udp']) ? (isset($this->options['iperf_reverse']) && isset($this->options['skip_bandwidth_graphs']) ? 4 : 6) : 2;
+      $testPages = count($this->servers) * $pagesPerServer;
+      
+      // multi-server graphs
+      $earliest = NULL;
+      $latest = NULL;
+      $directions = array();
+      $transfer = 0;
+      $bcoords = array();
+      $bandwidth = array();
+      $jcoords = array();
+      $jitter = array();
+      $lcoords = array();
+      $loss = array();
+      if (count($this->servers) > 1) {
+        $testPages += $pagesPerServer;
+        foreach($this->results as $i => $result) {
+          $pieces = explode(':', $result['iperf_server']);
+          $server = $pieces[0];
+          $offset = count($bandwidth)*$this->options['iperf_interval'] + ($i*$this->options['iperf_warmup']);
+          if (count($result['bandwidth_values'])) {
+            $bcoords[sprintf('%s - %s', $server, ucwords($result['bandwidth_direction']))] = $this->makeCoords($result['bandwidth_values'], FALSE, $offset);
+          }
+          if (isset($result['jitter_values']) && count($result['jitter_values']) > 1) {
+            $jcoords[sprintf('%s - %s', $server, ucwords($result['bandwidth_direction']))] = $this->makeCoords($result['jitter_values'], FALSE, $offset);
+            foreach($result['jitter_values'] as $val) $jitter[] = $val;
+          }
+          if (isset($result['loss_values']) && count($result['loss_values']) > 1) {
+            $lcoords[sprintf('%s - %s', $server, ucwords($result['bandwidth_direction']))] = $this->makeCoords($result['loss_values'], FALSE, $offset);
+            foreach($result['loss_values'] as $val) $loss[] = $val;
+          }
+          foreach($result['bandwidth_values'] as $val) $bandwidth[] = $val;
+          if (!$earliest) $earliest = $result['test_started'];
+          $latest = $result['test_stopped'];
+          $directions[ucwords($result['bandwidth_direction'])] = TRUE;
+          $transfer += $result['transfer'];
+        }
+        $settings = array();
+        $settings['nogrid'] = TRUE;
+        $settings['yMin'] = 0;
+        
+        $hsettings = array();
+        $hsettings['nogrid'] = TRUE;
+        $hsettings['yMin'] = 0;
+        $hsettings['yFloatPrec'] = 0;
+        $hsettings['yMax'] = '20%';
+        
+        if (!isset($this->options['skip_bandwidth_graphs'])) {
+          if ($bcoords && ($graph = $this->generateGraph($dir, 'bandwidth', $bcoords, 'Time (secs)', 'Bandwidth (Mb/s)', NULL, $settings))) $graphs['Bandwidth'] = $graph;
+          if ($bandwidth) {
+            $coords = $this->makeCoords($bandwidth, TRUE);
+            if ($graph = $this->generateGraph($dir, 'bandwidth-histogram', $coords, 'Mb/s', 'Samples', NULL, $hsettings, TRUE, 'histogram')) $graphs['Bandwidth Histogram - All Servers'] = $graph;
+          }
+        }
+        if ($jcoords && ($graph = $this->generateGraph($dir, 'jitter', $jcoords, 'Time (secs)', 'Jitter (ms)', NULL, $settings))) $graphs['Jitter'] = $graph;
+        if ($jitter) {
+          $coords = $this->makeCoords($jitter, TRUE);
+          if ($graph = $this->generateGraph($dir, 'jitter-histogram', $coords, 'ms', 'Samples', NULL, $hsettings, TRUE, 'histogram')) $graphs['Jitter Histogram - All Servers'] = $graph;
+        }
+        if ($lcoords && ($graph = $this->generateGraph($dir, 'loss', $lcoords, 'Time (secs)', 'Datagram Loss (%)', NULL, $settings))) $graphs['Datagram Loss'] = $graph;
+        if ($loss) {
+          $coords = $this->makeCoords($loss, TRUE);
+          if ($graph = $this->generateGraph($dir, 'loss-histogram', $coords, '%', 'Samples', NULL, $hsettings, TRUE, 'histogram')) $graphs['Datagram Loss Histogram - All Servers'] = $graph;
+        }
+      }
+      
+      $gresults = array();
       foreach($this->results as $result) {
         $testPageNum = 0;
-        if ($graphs = $this->generateGraphs($result, $dir, str_replace(':', '_', str_replace('.', '-', $result['iperf_server'])))) {
+        if ($rgraphs = $this->generateGraphs($result, $dir, str_replace(':', '_', str_replace('.', '-', $result['iperf_server'])))) {
           print_msg(sprintf('Successfully generated report graphs for server %s', $result['iperf_server']), $this->verbose, __FILE__, __LINE__);
+          $graphs = array_merge($graphs, $rgraphs);
+          foreach(array_keys($rgraphs) as $label) $gresults[$label] = $result;
         }
         else {
           if (!isset($this->options['skip_bandwidth_graphs'])) print_msg(sprintf('Unable to generate report graphs for server %s, bandwidth values: [%s]', $result['iperf_server'], implode(', ', $result['bandwidth_values'])), $this->verbose, __FILE__, __LINE__, TRUE);
           continue;
         }
-        
-        // render report graphs (1 per page)
-        foreach($graphs as $label => $graph) {
-          $params = array(
-            'platform' => $this->getPlatformParameters(),
-            'iperf_server' => $this->getPlatformParameters($result['iperf_server']),
-            'test' =>     array('Test Protocol' => isset($this->options['iperf_udp']) ? 'UDP' : 'TCP',
-                                'Direction' => ucwords($result['bandwidth_direction']),
-                                'Duration' => isset($this->options['iperf_num']) ? $this->options['iperf_num'] . ' Buffers' : $this->options['iperf_time'] . ' Secs',
-                                'Warmup' => isset($this->options['iperf_warmup']) && $this->options['iperf_warmup'] > 0 ? $this->options['iperf_warmup'] . ' Secs' : 'None',
-                                'Threads' => $this->options['iperf_parallel'],
-                                'UDP Bandwidth' => isset($this->options['iperf_udp']) ? $this->options['iperf_bandwidth'] : 'N/A',
-                                'Started' => $result['test_started'],
-                                'Ended' => $result['test_stopped']),
-            'result' =>   array('Mean Bandwidth' => round($result['bandwidth_mean'] > 1000 ? $result['bandwidth_mean']/1000 : $result['bandwidth_mean'], 2) . ($result['bandwidth_mean'] > 1000 ? ' Gb/s' : ' Mb/s'),
-                                'Median Bandwidth' => round($result['bandwidth_median'] > 1000 ? $result['bandwidth_median']/1000 : $result['bandwidth_median'], 2) . ($result['bandwidth_median'] > 1000 ? ' Gb/s' : ' Mb/s'),
-                                'Std Dev' => round($result['bandwidth_stdev'], 2),
-                                'Transfer' => round($result['transfer'] > 1024 ? $result['transfer']/1024 : $result['transfer'], 2) . ($result['transfer'] > 1024 ? ' GB' : ' MB'),
-                                'Mean Jitter' => isset($result['jitter_mean']) ? round($result['jitter_mean'], 4) . ' ms' : 'N/A',
-                                'Median Jitter' => isset($result['jitter_median']) ? round($result['jitter_median'], 4) . ' ms' : 'N/A',
-                                'Mean Datagram Loss' => isset($result['loss_mean']) ? round($result['loss_mean'], 4) . '%' : 'N/A',
-                                'Median Datagram Loss' => isset($result['loss_median']) ? round($result['loss_median'], 4) . '%' : 'N/A')
-          );
-          $headers = array();
-          for ($i=0; $i<100; $i++) {
-            $empty = TRUE;
-            $cols = array();
-            foreach($params as $type => $vals) {
-              if (count($vals) >= ($i + 1)) {
-                $empty = FALSE;
-                $keys = array_keys($vals);
-                $cols[] = array('class' => $type, 'label' => $keys[$i], 'value' => $vals[$keys[$i]]);
-              }
-              else $cols[] = array('class' => $type, 'label' => '', 'value' => '');
-            }
-            if (!$empty) $headers[] = $cols;
-            else break;
-          }
-          
-          $pageNum++;
-          $testPageNum++;
-          print_msg(sprintf('Successfully generated graphs for %s', $result['iperf_server']), $this->verbose, __FILE__, __LINE__);
-          ob_start();
-          include(sprintf('%s/test.html', $reportsDir));
-          fwrite($fp, ob_get_contents());
-          ob_end_clean(); 
-          $generated = TRUE; 
+      }
+      
+      // render report graphs (1 per page)
+      foreach($graphs as $label => $graph) {
+        $result = isset($gresults[$label]) ? $gresults[$label] : NULL;
+        $bwMean = $result ? $result['bandwidth_mean'] : get_mean($bandwidth);
+        $bwMedian = $result ? $result['bandwidth_median'] : get_median($bandwidth);
+        $bwStd = $result ? $result['bandwidth_stdev'] : get_std_dev($bandwidth);
+        $tx = $result ? $result['transfer'] : $transfer;
+        $jitterMean = $result ? (isset($result['jitter_mean']) ? $result['jitter_mean'] : NULL) : ($jitter ? get_mean($jitter) : NULL);
+        $jitterMedian = $result ? (isset($result['jitter_median']) ? $result['jitter_median'] : NULL) : ($jitter ? get_median($jitter) : NULL);
+        $lossMean = $result ? (isset($result['loss_mean']) ? $result['loss_mean'] : NULL) : ($loss ? get_mean($loss) : NULL);
+        $lossMedian = $result ? (isset($result['loss_median']) ? $result['loss_median'] : NULL) : ($loss ? get_median($loss) : NULL);
+        $bw = NULL;
+        if (isset($this->options['iperf_udp'])) {
+          if ($result) $bw = $this->bandwidth[$result['iperf_server']];
+          else $bw = $this->options['iperf_bandwidth'];
         }
+        $params = array(
+          'platform' => $this->getPlatformParameters(),
+          'server' => $this->getPlatformParameters($result ? $result['iperf_server'] : NULL),
+          'test' =>     array('Test Protocol' => isset($this->options['iperf_udp']) ? 'UDP' : 'TCP',
+                              'Direction' => $result ? ucwords($result['bandwidth_direction']) : implode(', ', array_keys($directions)),
+                              'Duration' => isset($this->options['iperf_num']) ? $this->options['iperf_num'] . ' Buffers' : $this->options['iperf_time'] . ' secs',
+                              'Warmup' => isset($this->options['iperf_warmup']) && $this->options['iperf_warmup'] > 0 ? $this->options['iperf_warmup'] . ' secs' : 'None',
+                              'Threads' => $this->options['iperf_parallel'],
+                              'UDP Bandwidth' => isset($this->options['iperf_udp']) ? $bw : 'N/A',
+                              'Started' => $result ? $result['test_started'] : $earliest,
+                              'Ended' => $result ? $result['test_stopped'] : $latest),
+          'result' =>   array('Mean Bandwidth' => round($bwMean > 1000 ? $bwMean/1000 : $bwMean, 2) . ($bwMean > 1000 ? ' Gb/s' : ' Mb/s'),
+                              'Median Bandwidth' => round($bwMedian > 1000 ? $bwMedian/1000 : $bwMedian, 2) . ($bwMedian > 1000 ? ' Gb/s' : ' Mb/s'),
+                              'Std Dev' => round($bwStd, 2),
+                              'Transfer' => round($tx > 1024 ? $tx/1024 : $tx, 2) . ($tx > 1024 ? ' GB' : ' MB'),
+                              'Mean Jitter' => isset($jitterMean) ? round($jitterMean, 4) . ' ms' : 'N/A',
+                              'Median Jitter' => isset($jitterMedian) ? round($jitterMedian, 4) . ' ms' : 'N/A',
+                              'Mean Datagram Loss' => isset($lossMean) ? round($lossMean, 4) . '%' : 'N/A',
+                              'Median Datagram Loss' => isset($lossMedian) ? round($lossMedian, 4) . '%' : 'N/A')
+        );
+        if (!$result) unset($params['server']);
+        $headers = array();
+        for ($i=0; $i<100; $i++) {
+          $empty = TRUE;
+          $cols = array();
+          foreach($params as $type => $vals) {
+            if (count($vals) >= ($i + 1)) {
+              $empty = FALSE;
+              $keys = array_keys($vals);
+              $cols[] = array('class' => $type, 'label' => $keys[$i], 'value' => $vals[$keys[$i]]);
+            }
+            else $cols[] = array('class' => $type, 'label' => '', 'value' => '');
+          }
+          if (!$empty) $headers[] = $cols;
+          else break;
+        }
+        
+        $pageNum++;
+        $testPageNum++;
+        print_msg(sprintf('Successfully generated graphs for %s', $result ? $result['iperf_server'] : 'all servers'), $this->verbose, __FILE__, __LINE__);
+        ob_start();
+        include(sprintf('%s/test.html', $reportsDir));
+        fwrite($fp, ob_get_contents());
+        ob_end_clean(); 
+        $generated = TRUE; 
       }
       
       // add footer
@@ -594,6 +682,7 @@ class IperfTest {
    */
   private function getPlatformParameters($server = FALSE) {
     if ($server && isset($this->servers[$server])) {
+      $os = 
       $params = array(
         'Server' => $server,
         'Provider' => isset($this->servers[$server]['provider']) ? $this->servers[$server]['provider'] : (isset($this->servers[$server]['provider_id']) ? $this->servers[$server]['provider_id'] : ''),
@@ -633,6 +722,7 @@ class IperfTest {
       }
       foreach($this->options['results'] as $result) {
         $row = array_merge($brow, $result);
+        if (!isset($this->options['iperf_udp']) && isset($row['iperf_bandwidth'])) unset($row['iperf_bandwidth']);
         $rows[] = $row;
       }
     }
@@ -713,6 +803,7 @@ class IperfTest {
           'noreport',
           'output:',
           'skip_bandwidth_graphs',
+          'tcp_bw_file:',
           'v' => 'verbose'
         );
         $this->options = parse_args($opts, array('iperf_server', 
@@ -746,13 +837,10 @@ class IperfTest {
             else if (isset($this->options[$arg][0])) $val = $this->options[$arg][0];
             else if (isset($this->options[sprintf('meta_%s', $attr)])) $val = $this->options[sprintf('meta_%s', $attr)];
             else if (isset($this->options[sprintf('meta_compute_%s', $attr)])) $val = $this->options[sprintf('meta_compute_%s', $attr)];
-            if ($val) $server[$attr] = $val;
+            $server[$attr] = $val;
           }
           $this->servers[$hostname] = $server;
         }
-        
-        // OS => set to first value in string formatted like linux.ubuntu
-        if (isset($this->options['meta_os']) && count($pieces = explode('.', $this->options['meta_os'])) == 2) $this->options['meta_os'] = $pieces[0];
       }
     }
     return $this->options;
@@ -773,11 +861,10 @@ class IperfTest {
    * make coordinates tuples from a results array
    * @param array $vals results array (indexed by seconds)
    * @param boolean $histogram make coordinates for a histogram
-   * @param boolean $secsReset if TRUE, seconds will be explictly set to start 
-   * at 0 and jump by iperf_interval
+   * @param int $offset operation start time offset
    * @return array
    */
-  private function makeCoords($vals, $histogram=FALSE, $secsReset=FALSE) {
+  private function makeCoords($vals, $histogram=FALSE, $offset=0) {
     $coords = array();
     if ($histogram) {
       $vmin = NULL;
@@ -813,7 +900,7 @@ class IperfTest {
     }
     else {
       foreach(array_keys($vals) as $i => $secs) {
-        $time = $secsReset ? $i*$this->options['iperf_interval'] : $secs;
+        $time = $offset + $secs;
         if (isset($this->options['iperf_warmup']) && $this->options['iperf_warmup'] > 0) $time += $this->options['iperf_warmup'];
         $coords[] = array($time, $vals[$secs]);
       }
@@ -838,10 +925,44 @@ class IperfTest {
     foreach($this->servers as $host => $server) {
       $results = array();
       $ofile = sprintf('%s/%s', $this->options['output'], rand());
-      $iperf = sprintf('iperf -c %s -y C -i %d%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s >%s 2>&1',
+      $bw = NULL;
+      if (isset($this->options['iperf_udp']) && 
+          ($bw = isset($this->options['iperf_bandwidth']) && $this->options['iperf_bandwidth'] != 1 && $this->options['iperf_bandwidth'] != '1M' ? $this->options['iperf_bandwidth'] : NULL) && 
+          preg_match('/^([0-9\.]+)%$/', trim($bw), $m)) {
+        // check for prior TCP bandwidth results
+        $bw = NULL;
+        if (isset($this->options['tcp_bw_file']) && file_exists($this->options['tcp_bw_file'])) {
+          $prior = array();
+          $fp = fopen($this->options['tcp_bw_file'], 'r');
+          while($line = fgets($fp)) {
+            $pieces = explode('/', $line);
+            if ($host == $pieces[0] && isset($pieces[2]) && $pieces[2] > 0) {
+              if (!isset($prior[$pieces[1]])) $prior[$pieces[1]] = array();
+              $prior[$pieces[1]][] = $pieces[2]*1;
+            }
+          }
+          fclose($fp);
+          if (isset($prior['down']) || isset($prior['up'])) {
+            $prior = isset($prior['down']) ? $prior['down'] : $prior['up'];
+            $bw = round(get_mean($prior)*($m[1]*0.01)) . 'M';
+            print_msg(sprintf('Set UDP bandwidth dynamically to %s for server %s and --iperf_bandwidth %s from prior TCP bandwidth metrics [%s]', $bw, $host, $this->options['iperf_bandwidth'], implode(', ', $prior)), $this->verbose, __FILE__, __LINE__);
+          }
+          else {
+            $bw = '1M';
+            print_msg(sprintf('Unable to set UDP bandwidth dynamically for server %s because not prior TCP Iperf metrics are present in %s', $host, $this->options['tcp_bw_file']), $this->verbose, __FILE__, __LINE__, TRUE);
+          }
+        }
+      }
+      else $bw = '1M';
+      if (preg_match('/^([0-9\.]+)%$/', trim($bw))) $bw = '1M';
+      
+      $this->bandwidth[$host] = $bw;
+      
+      $iperf = sprintf('%siperf -c %s -y C -i %d%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s >%s 2>&1',
+        !isset($this->options['iperf_num']) && !validate_dependencies(array('timeout' => 'timeout')) ? 'timeout -s 9 ' . (30 + ($this->options['iperf_time']*(isset($this->options['iperf_reverse']) ? 2 : 1))) . ' ' : '',
         $server['hostname'],
         $this->options['iperf_interval'], 
-        isset($this->options['iperf_udp']) && isset($this->options['iperf_bandwidth']) && $this->options['iperf_bandwidth'] != 1 && $this->options['iperf_bandwidth'] != '1M' ? ' -b ' . $this->options['iperf_bandwidth'] : '',
+        isset($this->options['iperf_udp']) && $bw && $bw != '1M' ? ' -b ' . $bw : '',
         isset($this->options['iperf_len']) ? ' -l ' . $this->options['iperf_len'] : '',
         isset($this->options['iperf_mss']) ? ' -M ' . $this->options['iperf_mss'] : '',
         isset($this->options['iperf_nodelay']) ? ' -N' : '',
@@ -895,7 +1016,7 @@ class IperfTest {
               if (!isset($result['bandwidth_values'][$start])) $result['bandwidth_values'][$start] = 0;
               $bw = ($pieces[8]/1000)/1000;
               $mb = ($pieces[7]/1024)/1024;
-              print_msg(sprintf('Adding bandwidth value %s Mb/s, transfer %s MB for interval %d-%d; line %s', $bw, $mb, $start, $stop, trim($line)), $this->verbose, __FILE__, __LINE__);
+              // print_msg(sprintf('Adding bandwidth value %s Mb/s, transfer %s MB for interval %d-%d; line %s', $bw, $mb, $start, $stop, trim($line)), $this->verbose, __FILE__, __LINE__);
               $result['bandwidth_values'][$start] += $bw;
               $result['transfer'] += $mb;
               if (isset($this->options['iperf_udp']) && isset($pieces[9])) {
@@ -915,7 +1036,7 @@ class IperfTest {
             $result['jitter_values'][] = $pieces[9];
             $result['loss_values'][] = $pieces[12];
           }
-          else print_msg(sprintf('Skipping line %s', trim($line)), $this->verbose, __FILE__, __LINE__);
+          // else print_msg(sprintf('Skipping line %s', trim($line)), $this->verbose, __FILE__, __LINE__);
         }
         if ($result) $results[] = $result;
         
@@ -950,9 +1071,12 @@ class IperfTest {
           $results[$i]['same_service'] = $results[$i]['same_provider'] && isset($server['service_id']) && isset($this->options['meta_compute_service_id']) && $server['service_id'] == $this->options['meta_compute_service_id'];
           $results[$i]['same_region'] = $results[$i]['same_service'] && isset($server['region']) && isset($this->options['meta_region']) && $server['region'] == $this->options['meta_region'];
           $results[$i]['same_instance_id'] = $results[$i]['same_service'] && isset($server['instance_id']) && isset($this->options['meta_instance_id']) && $server['instance_id'] == $this->options['meta_instance_id'];
-          $results[$i]['same_os'] = isset($server['os']) && isset($this->options['meta_os']) && $server['os'] == $this->options['meta_os'];
+          $results[$i]['same_os'] = isset($results[$i]['iperf_server_os']) && isset($this->options['meta_os']) && $results[$i]['iperf_server_os'] == $this->options['meta_os'];
           $results[$i]['test_started'] = $started;
           $results[$i]['test_stopped'] = $stopped;
+          // add TCP bandwidth results
+          if (isset($this->options['tcp_bw_file']) && !isset($this->options['iperf_udp']) && isset($results[$i]['bandwidth_median']) && $results[$i]['bandwidth_median'] > 0) exec(sprintf('echo "%s/%s/%s" >> %s', $results[$i]['iperf_server'], $results[$i]['bandwidth_direction'], $results[$i]['bandwidth_median'], $this->options['tcp_bw_file']));
+          
           if (isset($this->options['ignore_uplink']) && $results[$i]['bandwidth_direction'] == 'up') print_msg(sprintf('Skipping uplink results for server %s because --ignore_uplink flag is set', $server['hostname']), $this->verbose, __FILE__, __LINE__);
           else {
             print_msg(sprintf('Adding result row for server %s with %d bandwidth values - median %s Mb/s', $server['hostname'], count($results[$i]['bandwidth_values']), $results[$i]['bandwidth_median']), $this->verbose, __FILE__, __LINE__);
@@ -999,7 +1123,7 @@ class IperfTest {
     $validate = array(
       'font_size' => array('min' => 6, 'max' => 64),
       'output' => array('write' => TRUE),
-      'iperf_bandwidth' => array('regex' => '/^[0-9]+[km]$/i'),
+      'iperf_bandwidth' => array('regex' => '/^[0-9\.]+[km%]$/i'),
       'iperf_interval' => array('min' => 1, 'max' => 60, 'required' => TRUE),
       'iperf_len' => array('regex' => '/^[0-9]+[km]$/i'),
       'iperf_listen' => array('min' => 1),
@@ -1009,7 +1133,8 @@ class IperfTest {
       'iperf_time' => array('min' => 1),
       'iperf_ttl' => array('min' => 1),
       'iperf_warmup' => array('min' => 0),
-      'iperf_window' => array('min' => 1)
+      'iperf_window' => array('min' => 1),
+      'tcp_bw_file' => array('writedir' => TRUE)
     );
     
     $validated = validate_options($options, $validate);

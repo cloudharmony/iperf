@@ -44,7 +44,21 @@ The following runtime parameters and environment metadata may be specified
                             bandwidth limits (particularly useful for UDP 
                             tests). Value may be a numeric value (bits), or 
                             numeric value followed by K (kilobits) or M 
-                            (megabits)
+                            (megabits). 
+                            
+                            Optionally, this parameter may designate a 
+                            percentage of bandwidth achieved during prior 
+                            TCP Iperf testing for a given server. To designate
+                            such, set this parameter is a numeric value 
+                            followed by % (e.g --iperf_bandwidth 80%). To use 
+                            this method of designating bandwidth, the 
+                            --tcp_bw_file parameter must be used during a prior
+                            Iperf TCP test for the same servers. If multiple 
+                            TCP result metrics exist in --tcp_bw_file for a 
+                            given server (e.g. uplink and downlink) downlink 
+                            metrics will be used (if present), otherwise, 
+                            uplink. If multiple metrics exist of those types,
+                            the mean of all will be calculated and used
 
 * iperf_interval            The frequency (seconds) to take bandwidth 
                             measurements - default is 1
@@ -244,13 +258,18 @@ The following runtime parameters and environment metadata may be specified
 * noreport                  Don't generate html or PDF test reports - 
                             report.zip and report.pdf (gnuplot, wkhtmltopdf and
                             zip dependencies removed if specified)
-                            
-* skip_bandwidth_graphs     If set along with --iperf_reverse, bandwidth graphs 
-                            will be skipped in the report
-                            
+
 * output                    The output directory to use for writing test data 
                             (logs and artifacts). If not specified, the current 
                             working directory will be used
+                            
+* skip_bandwidth_graphs     If set along with --iperf_reverse, bandwidth graphs 
+                            will be skipped in the report
+
+* tcp_bw_file               Optional path to a file where TCP bandwidth results
+                            for every tested server should be saved. This is 
+                            required for use of a percentage in the 
+                            --iperf_bandwidth parameter (see above)
 
 * verbose                   Show verbose output
 
