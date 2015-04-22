@@ -27,6 +27,11 @@ The following runtime parameters and environment metadata may be specified
                             with this software. To change this, simply replace
                             the reports/font.ttf file with your desired font
                             
+* ignore_uplink             If set, uplink results will be ignored. May be used 
+                            in conjunction with the --iperf_reverse flag and 
+                            Iperf version 1-2 to ignore the initial client to 
+                            server (uplink) test results
+                            
 * iperf_bandwidth           Set target bandwidth to n bits/sec (default 1 Mb/s 
                             for UDP, unlimited for TCP). If there are multiple 
                             streams (--iperf_parallel), the bandwidth limit is 
@@ -51,6 +56,13 @@ The following runtime parameters and environment metadata may be specified
                             Value may be a numeric value (bytes), or numeric 
                             value followed by K (kilobytes) or M (megabytes)
                             
+* iperf_listen              When --iperf_reverse is used, the client will open
+                            an port for the server to connect to for 
+                            reverse/downlink tests. By default, the test 
+                            harness will use a random port number between 30000
+                            and 60000. Use this parameter to set an explicit 
+                            port number for server => client tests
+                            
 * iperf_mss                 Attempt to set the TCP maximum segment size (MSS) 
                             via the TCP_MAXSEG option. The MSS is usually the 
                             MTU - 40 bytes for the TCP/IP header. For ethernet, 
@@ -73,6 +85,15 @@ The following runtime parameters and environment metadata may be specified
                             number of CPU cores. May also contain an equation 
                             which will be automatically evaluated (e.g. 
                             --iperf_parallel "[cpus]*2")
+                            
+* iperf_reverse             This argument has different meanings depending on 
+                            Iperf version. For versions 1-2, setting this flag
+                            will cause Iperf to execute in tradeoff mode, 
+                            meaning after the client tests connectivity to the 
+                            server (uplink), the server will do the same to the
+                            client (downlink). For Iperf 3, setting this flag 
+                            will result in testing from client to server being
+                            skipped - thus only generating downlink results
 
 * iperf_server              IP address or hostname for the Iperf server(s) to 
                             test. If a server uses a non-default port (5001 for 
@@ -144,14 +165,6 @@ The following runtime parameters and environment metadata may be specified
                               IPTOS_THROUGHPUT   maximize throughput   0x08
                               IPTOS_RELIABILITY  maximize reliability  0x04
                               IPTOS_LOWCOST      minimize cost         0x02
-                              
-* iperf_tradeoff            Run Iperf in tradeoff testing mode. This will cause 
-                            the server to connect back to the client to conduct
-                            testing in the opposite direction (downlink). When 
-                            used 2 records will exist for each --iperf_server,
-                            one with bandwidth_direction=up (client => server) 
-                            and the next bandwidth_direction=down (server => 
-                            client)
                               
 * iperf_ttl                 The time-to-live for outgoing multicast packets. 
                             This is essentially the number of router hops to go 
@@ -232,6 +245,9 @@ The following runtime parameters and environment metadata may be specified
                             report.zip and report.pdf (gnuplot, wkhtmltopdf and
                             zip dependencies removed if specified)
                             
+* skip_bandwidth_graphs     If set along with --iperf_reverse, bandwidth graphs 
+                            will be skipped in the report
+                            
 * output                    The output directory to use for writing test data 
                             (logs and artifacts). If not specified, the current 
                             working directory will be used
@@ -311,9 +327,9 @@ iperf_zerocopy
 iteration*: [iteration number (used with incremental result directories)]
 
 # NOTE: jitter_* and loss_* result metrics are only available for UDP tests
-# If --iperf_tradeoff is not set, jitter and loss are limited to a single 
+# If --iperf_reverse is not set, jitter and loss are limited to a single 
 # metrics reported by the server (thus max, mean, median, p10, etc. will all
-# be the same). If --iperf_tradeoff is set, jitter_* and loss_* metrics for the 
+# be the same). If --iperf_reverse is set, jitter_* and loss_* metrics for the 
 # second result row (bandwidth_direction=down) will be based on metrics from 1 
 # second samples
 jitter_max: max jitter from 1 second samples

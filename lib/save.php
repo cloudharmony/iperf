@@ -50,6 +50,11 @@ if ($db =& BenchmarkDb::getDb()) {
         }
         else if (file_exists($file)) print_msg(sprintf('Artifact %s will not be saved because --%s was set', basename($file), $arg), isset($args['verbose']), __FILE__, __LINE__);
       }
+      foreach(array_keys($results) as $n) {
+        $results[$n]['iteration'] = $iteration;
+        if ($db->addRow('iperf', $results[$n])) print_msg(sprintf('Successfully added test result row'), isset($args['verbose']), __FILE__, __LINE__);
+        else print_msg(sprintf('Failed to save test results'), isset($args['verbose']), __FILE__, __LINE__, TRUE); 
+      }
     }
     else print_msg(sprintf('Unable to save results in directory %s - are result files present?', $dir), isset($args['verbose']), __FILE__, __LINE__, TRUE);
   }
