@@ -185,6 +185,7 @@ class IperfTest {
           $settings = array();
           $settings['nogrid'] = TRUE;
           $settings['yMin'] = 0;
+          $settings['yFloatPrec'] = 0;
           $settings['yMax'] = '20%';
           $keys = array_keys($coords);
           if ($graph = $this->generateGraph($dir, sprintf('%s-%s-histogram', $prefix, $attr), $coords, sprintf('%s (%s)', ucwords($attr == 'loss' ? 'datagram loss' : $attr), $attr == 'bandwidth' ? 'Mb/s' : ($attr == 'jitter' ? 'ms' : '%')), 'Samples', NULL, $settings, TRUE, 'histogram')) $graphs[sprintf('%s Histogram - %s', ucwords($attr == 'loss' ? 'datagram loss' : $attr), $result['iperf_server'])] = $graph;
@@ -319,7 +320,7 @@ class IperfTest {
       $xStep = floor($xDiff/$xTics);
       if ($xDiff <= 1) {
         $xStep = round($xDiff/$xTics, 3);
-        if (!$xFloatPrec) $xFloatPrec = 3;
+        if (!isset($settings['xFloatPrec'])) $xFloatPrec = 3;
       }
       
       // determine y tic settings
@@ -342,7 +343,7 @@ class IperfTest {
         $yStep = floor($yDiff/$yTics);
         if ($yDiff <= 1) {
           $yStep = round($yDiff/$yTics, 3);
-          if (!$yFloatPrec) $yFloatPrec = 3;
+          if (!isset($settings['yFloatPrec'])) $yFloatPrec = 3;
         }
       }
       
@@ -519,7 +520,7 @@ class IperfTest {
                                 'Duration' => isset($this->options['iperf_num']) ? $this->options['iperf_num'] . ' Buffers' : $this->options['iperf_time'] . ' Secs',
                                 'Warmup' => isset($this->options['iperf_warmup']) && $this->options['iperf_warmup'] > 0 ? $this->options['iperf_warmup'] . ' Secs' : 'None',
                                 'Threads' => $this->options['iperf_parallel'],
-                                'Bandwidth' => isset($this->options['iperf_udp']) ? $this->options['iperf_bandwidth'] : 'N/A',
+                                'UDP Bandwidth' => isset($this->options['iperf_udp']) ? $this->options['iperf_bandwidth'] : 'N/A',
                                 'Started' => $result['test_started'],
                                 'Ended' => $result['test_stopped']),
             'result' =>   array('Mean Bandwidth' => round($result['bandwidth_mean'] > 1000 ? $result['bandwidth_mean']/1000 : $result['bandwidth_mean'], 2) . ($result['bandwidth_mean'] > 1000 ? ' Gb/s' : ' Mb/s'),
