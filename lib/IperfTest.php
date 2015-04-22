@@ -555,18 +555,18 @@ class IperfTest {
           if ($bcoords && ($graph = $this->generateGraph($dir, 'bandwidth', $bcoords, 'Time (secs)', 'Bandwidth (Mb/s)', NULL, $settings))) $graphs['Bandwidth'] = $graph;
           if ($bandwidth) {
             $coords = $this->makeCoords($bandwidth, TRUE);
-            if ($graph = $this->generateGraph($dir, 'bandwidth-histogram', $coords, 'Mb/s', 'Samples', NULL, $hsettings, TRUE, 'histogram')) $graphs['Bandwidth Histogram - All Servers'] = $graph;
+            if ($graph = $this->generateGraph($dir, 'bandwidth-histogram', $coords, 'Bandwidth (Mb/s)', 'Samples', NULL, $hsettings, TRUE, 'histogram')) $graphs['Bandwidth Histogram - All Servers'] = $graph;
           }
         }
         if ($jcoords && ($graph = $this->generateGraph($dir, 'jitter', $jcoords, 'Time (secs)', 'Jitter (ms)', NULL, $settings))) $graphs['Jitter'] = $graph;
         if ($jitter) {
           $coords = $this->makeCoords($jitter, TRUE);
-          if ($graph = $this->generateGraph($dir, 'jitter-histogram', $coords, 'ms', 'Samples', NULL, $hsettings, TRUE, 'histogram')) $graphs['Jitter Histogram - All Servers'] = $graph;
+          if ($graph = $this->generateGraph($dir, 'jitter-histogram', $coords, 'Jitter (ms)', 'Samples', NULL, $hsettings, TRUE, 'histogram')) $graphs['Jitter Histogram - All Servers'] = $graph;
         }
         if ($lcoords && ($graph = $this->generateGraph($dir, 'loss', $lcoords, 'Time (secs)', 'Datagram Loss (%)', NULL, $settings))) $graphs['Datagram Loss'] = $graph;
         if ($loss) {
           $coords = $this->makeCoords($loss, TRUE);
-          if ($graph = $this->generateGraph($dir, 'loss-histogram', $coords, '%', 'Samples', NULL, $hsettings, TRUE, 'histogram')) $graphs['Datagram Loss Histogram - All Servers'] = $graph;
+          if ($graph = $this->generateGraph($dir, 'loss-histogram', $coords, 'Datagram Loss (%)', 'Samples', NULL, $hsettings, TRUE, 'histogram')) $graphs['Datagram Loss Histogram - All Servers'] = $graph;
         }
       }
       
