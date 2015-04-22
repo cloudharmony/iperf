@@ -18,6 +18,7 @@
 /**
  * saves results based on the arguments defined in ../run.sh
  */
+sleep(5);
 require_once(dirname(__FILE__) . '/IperfTest.php');
 require_once(dirname(__FILE__) . '/benchmark/save/BenchmarkDb.php');
 $status = 1;
