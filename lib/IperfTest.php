@@ -614,7 +614,7 @@ class IperfTest {
                               'Ended' => $result ? $result['test_stopped'] : $latest),
           'result' =>   array('Mean Bandwidth' => round($bwMean > 1000 ? $bwMean/1000 : $bwMean, 2) . ($bwMean > 1000 ? ' Gb/s' : ' Mb/s'),
                               'Median Bandwidth' => round($bwMedian > 1000 ? $bwMedian/1000 : $bwMedian, 2) . ($bwMedian > 1000 ? ' Gb/s' : ' Mb/s'),
-                              'Std Dev' => round($bwStd, 2),
+                              'Std Dev' => round($bwStd, 2) . ' Mb/s',
                               'Transfer' => round($tx > 1024 ? $tx/1024 : $tx, 2) . ($tx > 1024 ? ' GB' : ' MB'),
                               'Mean Jitter' => isset($jitterMean) ? round($jitterMean, 4) . ' ms' : 'N/A',
                               'Median Jitter' => isset($jitterMedian) ? round($jitterMedian, 4) . ' ms' : 'N/A',
