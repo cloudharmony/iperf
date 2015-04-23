@@ -528,11 +528,11 @@ class IperfTest {
             $bcoords[sprintf('%s - %s', $server, ucwords($result['bandwidth_direction']))] = $this->makeCoords($result['bandwidth_values'], FALSE, $offset);
           }
           if (isset($result['jitter_values']) && count($result['jitter_values']) > 1) {
-            $jcoords[sprintf('%s - %s', $server, ucwords($result['bandwidth_direction']))] = $this->makeCoords($result['jitter_values'], FALSE, $offset);
+            $jcoords[sprintf('%s', $server, ucwords($result['bandwidth_direction']))] = $this->makeCoords($result['jitter_values'], FALSE, $offset);
             foreach($result['jitter_values'] as $val) $jitter[] = $val;
           }
           if (isset($result['loss_values']) && count($result['loss_values']) > 1) {
-            $lcoords[sprintf('%s - %s', $server, ucwords($result['bandwidth_direction']))] = $this->makeCoords($result['loss_values'], FALSE, $offset);
+            $lcoords[sprintf('%s', $server, ucwords($result['bandwidth_direction']))] = $this->makeCoords($result['loss_values'], FALSE, $offset);
             foreach($result['loss_values'] as $val) $loss[] = $val;
           }
           foreach($result['bandwidth_values'] as $val) $bandwidth[] = $val;
@@ -599,6 +599,7 @@ class IperfTest {
         if (isset($this->options['iperf_udp'])) {
           if ($result) $bw = $this->bandwidth[$result['iperf_server']];
           else $bw = $this->options['iperf_bandwidth'];
+          if (!$bw) $bw = '1M';
         }
         $params = array(
           'platform' => $this->getPlatformParameters(),
