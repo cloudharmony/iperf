@@ -754,7 +754,6 @@ class IperfTest {
           'iperf_listen' => rand(49152, 65535),
           'iperf_parallel' => 1,
           'iperf_time' => 10,
-          'iperf_ttl' => 1,
           'iperf_warmup' => 0,
           'meta_compute_service' => '',
           'meta_cpu' => $sysInfo['cpu'],
@@ -789,7 +788,6 @@ class IperfTest {
           'iperf_time:',
           'iperf_tos:',
           'iperf_reverse',
-          'iperf_ttl:',
           'iperf_udp',
           'iperf_warmup:',
           'iperf_window:',
@@ -982,11 +980,10 @@ class IperfTest {
         !isset($this->options['iperf_num']) && $this->options['iperf_time'] != 10 ? ' -t ' . $this->options['iperf_time'] : '',
         isset($this->options['iperf_tos']) ? ' -S ' . $this->options['iperf_tos'] : '',
         isset($this->options['iperf_reverse']) ? ($iperf3 ? ' -R' : ' -r') : '',
-        isset($this->options['iperf_ttl']) ? ' -T ' . $this->options['iperf_ttl'] : '',
         isset($this->options['iperf_udp']) ? ' -u' : '',
         isset($this->options['iperf_window']) ? ' -w ' . $this->options['iperf_window'] : '',
         isset($this->options['iperf_zerocopy']) && $iperf3 ? ' -Z' : '',
-        isset($this->options['iperf_reverse']) ? ' -L ' . $this->options['iperf_listen'] : '',
+        isset($this->options['iperf_reverse']) && !$iperf3 ? ' -L ' . $this->options['iperf_listen'] : '',
         $ofile);
       print_msg(sprintf('Testing server %s using %s', $server['hostname'], $iperf), $this->verbose, __FILE__, __LINE__);
       $started = date(self::IPERF_DB_DATE_FORMAT);
@@ -1202,7 +1199,6 @@ class IperfTest {
       'iperf_num' => array('min' => 1),
       'iperf_parallel' => array('min' => 1, 'required' => TRUE),
       'iperf_time' => array('min' => 1),
-      'iperf_ttl' => array('min' => 1),
       'iperf_warmup' => array('min' => 0),
       'iperf_window' => array('min' => 1),
       'tcp_bw_file' => array('writedir' => TRUE)

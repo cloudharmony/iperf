@@ -86,7 +86,8 @@ The following runtime parameters and environment metadata may be specified
                             reverse/downlink tests. By default, the test 
                             harness will use a random port number between 49152
                             and 65535. Use this parameter to set an explicit 
-                            port number for server => client tests
+                            port number for server => client tests. This 
+                            parameter is not used for Iperf3
                             
 * iperf_mss                 Attempt to set the TCP maximum segment size (MSS) 
                             via the TCP_MAXSEG option. The MSS is usually the 
@@ -190,11 +191,6 @@ The following runtime parameters and environment metadata may be specified
                               IPTOS_THROUGHPUT   maximize throughput   0x08
                               IPTOS_RELIABILITY  maximize reliability  0x04
                               IPTOS_LOWCOST      minimize cost         0x02
-                              
-* iperf_ttl                 The time-to-live for outgoing multicast packets. 
-                            This is essentially the number of router hops to go 
-                            through, and is also used for scoping. Default is 
-                            1, link-local
 
 * iperf_udp                 If set, testing will use UDP instead of TCP. When 
                             used, jitter and loss result values will also be 
@@ -353,7 +349,6 @@ iperf_server_service
 iperf_server_service_id
 iperf_time
 iperf_tos
-iperf_ttl
 iperf_udp
 iperf_version: Iperf version number
 iperf_warmup
