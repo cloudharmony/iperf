@@ -28,7 +28,7 @@ if ($invalid = $test->validateRunOptions($options)) {
   exit(1);
 }
 // missing dependencies
-else if ($dependencies = IperfTest::validateDependencies($options)) {
+else if ($dependencies = $test->validateDependencies($options)) {
   foreach($dependencies as $dependency) print_msg(sprintf('missing dependency %s [PATH=%s]', $dependency, getenv('PATH')), $verbose, __FILE__, __LINE__, TRUE);
   exit(1);
 }

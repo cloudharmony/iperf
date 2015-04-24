@@ -62,7 +62,14 @@ The following runtime parameters and environment metadata may be specified
                             given server (e.g. uplink and downlink) downlink 
                             metrics will be used (if present), otherwise, 
                             uplink. If multiple metrics exist of those types,
-                            the mean of all will be calculated and used
+                            the mean of all will be calculated and used.
+                            
+                            A third option is to specific both percentage based
+                            and fixed bandwidth parameters each separated by 
+                            a / (percentage first). If this format is used,
+                            the fixed value will be used IF a bandwidth metric 
+                            is not present in --tcp_bw_file for a given server
+                            (e.g. --iperf_bandwidth "25%/100M")
 
 * iperf_interval            The frequency (seconds) to take bandwidth 
                             measurements - default is 1
@@ -282,6 +289,8 @@ DEPENDENCIES
 This benchmark has the following dependencies:
   
   gnuplot     Generates report graphs (required unless --noreport set)
+  
+  iperf or iperf3 iperf3 will be used if present, otherwise iperf
 
   php         Test automation scripts (/usr/bin/php)
   
@@ -324,7 +333,10 @@ bandwidth_p90: 90th percentile bandwidth from 1 second samples
 bandwidth_stdev: Bandwidth standard deviation from 1 second samples
 benchmark_version: [benchmark version]
 collectd_rrd: [URL to zip file containing collectd rrd files (if --store option used)]
+cpu_client: average total CPU utilization on the client (Iperf3 only)
+cpu_server: average total CPU utilization on the server (Iperf3 only)
 iperf_bandwidth
+iperf_cmd: iperf command used
 iperf_interval
 iperf_len
 iperf_mss

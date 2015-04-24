@@ -18,7 +18,7 @@
  * Used to manage OLTP Benchmark testing
  */
 require_once(dirname(__FILE__) . '/benchmark/util.php');
-ini_set('memory_limit', '256m');
+ini_set('memory_limit', '512m');
 date_default_timezone_set('UTC');
 
 class IperfTest {
@@ -53,6 +53,11 @@ class IperfTest {
    * graph colors array
    */
   private $graphColors = array();
+  
+  /**
+   * iperf binary name (iperf or iperf3)
+   */
+  private $iperf = 'iperf';
   
   /**
    * run options
@@ -920,7 +925,7 @@ class IperfTest {
     $this->getRunOptions();
     $rrdStarted = isset($this->options['collectd_rrd']) ? ch_collectd_rrd_start($this->options['collectd_rrd_dir'], $this->verbose) : FALSE;
     $iperf3 = FALSE;
-    if (preg_match('/\s([0-9\.]+)[\s\-]/', trim(shell_exec('iperf --version 2>&1')), $m)) {
+    if (preg_match('/\s([0-9\.]+)[\s\-]/', trim(shell_exec(sprintf('%s --version 2>&1', $this->iperf))), $m)) {
       $this->options['iperf_version'] = $m[1];
       $iperf3 = substr($m[1], 0, 1) == 3;
     }
@@ -928,10 +933,10 @@ class IperfTest {
     foreach($this->servers as $host => $server) {
       $results = array();
       $ofile = sprintf('%s/%s', $this->options['output'], rand());
-      $bw = NULL;
+      $bwv = isset($this->options['iperf_bandwidth']) ? explode('/', $this->options['iperf_bandwidth']) : array('1M');
+      $bw = trim($bwv[0]);
       if (isset($this->options['iperf_udp']) && 
-          ($bw = isset($this->options['iperf_bandwidth']) && $this->options['iperf_bandwidth'] != 1 && $this->options['iperf_bandwidth'] != '1M' ? $this->options['iperf_bandwidth'] : NULL) && 
-          preg_match('/^([0-9\.]+)%$/', trim($bw), $m)) {
+          preg_match('/^([0-9\.]+)%$/', $bw, $m)) {
         // check for prior TCP bandwidth results
         $bw = NULL;
         if (isset($this->options['tcp_bw_file']) && file_exists($this->options['tcp_bw_file'])) {
@@ -951,19 +956,21 @@ class IperfTest {
             print_msg(sprintf('Set UDP bandwidth dynamically to %s for server %s and --iperf_bandwidth %s from prior TCP bandwidth metrics [%s]', $bw, $host, $this->options['iperf_bandwidth'], implode(', ', $prior)), $this->verbose, __FILE__, __LINE__);
           }
           else {
-            $bw = '1M';
-            print_msg(sprintf('Unable to set UDP bandwidth dynamically for server %s because not prior TCP Iperf metrics are present in %s', $host, $this->options['tcp_bw_file']), $this->verbose, __FILE__, __LINE__, TRUE);
+            $bw = isset($bwv[1]) ? $bwv[1] : '1M';
+            print_msg(sprintf('Unable to set UDP bandwidth dynamically for server %s because not prior TCP Iperf metrics are present in %s - using %s instead', $host, $this->options['tcp_bw_file'], $bw), $this->verbose, __FILE__, __LINE__);
           }
         }
       }
-      else $bw = '1M';
-      if (preg_match('/^([0-9\.]+)%$/', trim($bw))) $bw = '1M';
+      
+      if (!preg_match('/^[0-9\.]+[km]?$/i', $bw)) $bw = '1M';
       
       $this->bandwidth[$host] = $bw;
       
-      $iperf = sprintf('%siperf -c %s -y C -i %d%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s >%s 2>&1',
+      $iperf = sprintf('%s%s -c %s %s -i %d%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s >%s 2>&1',
         !isset($this->options['iperf_num']) && !validate_dependencies(array('timeout' => 'timeout')) ? 'timeout -s 9 ' . (30 + ($this->options['iperf_time']*(isset($this->options['iperf_reverse']) ? 2 : 1))) . ' ' : '',
+        $this->iperf,
         $server['hostname'],
+        $iperf3 ? '-J' : '-y C',
         $this->options['iperf_interval'], 
         isset($this->options['iperf_udp']) && $bw && $bw != '1M' ? ' -b ' . $bw : '',
         isset($this->options['iperf_len']) ? ' -l ' . $this->options['iperf_len'] : '',
@@ -974,7 +981,7 @@ class IperfTest {
         isset($this->options['iperf_parallel']) ? ' -P ' . $this->options['iperf_parallel'] : '',
         !isset($this->options['iperf_num']) && $this->options['iperf_time'] != 10 ? ' -t ' . $this->options['iperf_time'] : '',
         isset($this->options['iperf_tos']) ? ' -S ' . $this->options['iperf_tos'] : '',
-        isset($this->options['iperf_reverse']) ? ' -r' : '',
+        isset($this->options['iperf_reverse']) ? ($iperf3 ? ' -R' : ' -r') : '',
         isset($this->options['iperf_ttl']) ? ' -T ' . $this->options['iperf_ttl'] : '',
         isset($this->options['iperf_udp']) ? ' -u' : '',
         isset($this->options['iperf_window']) ? ' -w ' . $this->options['iperf_window'] : '',
@@ -988,60 +995,106 @@ class IperfTest {
       if (file_exists($ofile) && filesize($ofile)) {
         print_msg(sprintf('Iperf testing completed successfully for server %s', $server['hostname']), $this->verbose, __FILE__, __LINE__);
         $direction = $iperf3 && isset($this->options['iperf_reverse']) ? 'down' : 'up';
-        $lstart = 0;
-        $result = array();
-        foreach(file($ofile) as $line) {
-          $pieces = explode(',', trim($line));
-          if (count($pieces) < 8) continue;
-          
-          $span = explode('-', $pieces[6]);
-          $start = $span[0]*1;
-          $stop = $span[1]*1;
-          
-          if (round($stop - $start) == $this->options['iperf_interval'] && $pieces[2] > 0) {
-            // change to downlink
-            if ($lstart && $start < $lstart && ($lstart - $start) > 5) {
-              $direction = 'down';
-              $results[] = $result;
-              $result = array();
+        
+        // Iperf3 JSON format => always just 1 result
+        if ($iperf3) {
+          if (($json = json_decode(file_get_contents($ofile), TRUE)) && isset($json['intervals']) && count($json['intervals'])) {
+            $result = array();
+            print_msg(sprintf('Successfully parsed JSON respone with %d intervals', count($json['intervals'])), $this->verbose, __FILE__, __LINE__);
+            foreach($json['intervals'] as $interval) {
+              if (isset($interval['sum']) && isset($interval['sum']['start']) && (!$this->options['iperf_warmup'] || $interval['sum']['start'] >= $this->options['iperf_warmup'])) {
+                if (!isset($result['bandwidth_direction'])) {
+                  $result['bandwidth_direction'] = $direction;
+                  $result['bandwidth_values'] = array();
+                  $result['transfer'] = 0;
+                  if (isset($this->options['iperf_udp'])) {
+                    $result['jitter_values'] = array();
+                    $result['loss_values'] = array();
+                  }
+                }
+                $start = $interval['sum']['start'];
+                $bw = ($interval['sum']['bits_per_second']/1000)/1000;
+                $mb = ($interval['sum']['bytes']/1024)/1024;
+                $result['bandwidth_values'][$start] = $bw;
+                $result['transfer'] += $mb;
+                if (isset($this->options['iperf_udp'])) {
+                  if (isset($interval['sum']['jitter_ms'])) $result['jitter_values'][$start] = $interval['sum']['jitter_ms'];
+                  if (isset($interval['sum']['lost_percent'])) $result['loss_values'][$start] = $interval['sum']['lost_percent'];
+                }
+              }
             }
-            if (!$result) {
-              print_msg(sprintf('Starting new row for %s', $pieces[3]), $this->verbose, __FILE__, __LINE__);
-              $result['bandwidth_direction'] = $direction;
-              $result['bandwidth_values'] = array();
-              $result['transfer'] = 0;
+            if (isset($result['bandwidth_direction'])) {
+              // add jitter/loss from server
               if (isset($this->options['iperf_udp'])) {
-                $result['jitter_values'] = array();
-                $result['loss_values'] = array();
+                if (!$result['jitter_values'] && isset($json['end']['sum']['jitter_ms'])) $result['jitter_values'][] = $json['end']['sum']['jitter_ms'];
+                if (!$result['loss_values'] && isset($json['end']['sum']['lost_percent'])) $result['loss_values'][] = $json['end']['sum']['lost_percent'];
               }
+              if (isset($json['end']['cpu_utilization_percent']['host_total'])) $result['cpu_client'] = $json['end']['cpu_utilization_percent']['host_total'];
+              if (isset($json['end']['cpu_utilization_percent']['remote_total'])) $result['cpu_server'] = $json['end']['cpu_utilization_percent']['remote_total'];
+              $results[] = $result;
             }
-            if (!$this->options['iperf_warmup'] || $start >= $this->options['iperf_warmup']) {
-              if (!isset($result['bandwidth_values'][$start])) $result['bandwidth_values'][$start] = 0;
-              $bw = ($pieces[8]/1000)/1000;
-              $mb = ($pieces[7]/1024)/1024;
-              // print_msg(sprintf('Adding bandwidth value %s Mb/s, transfer %s MB for interval %d-%d; line %s', $bw, $mb, $start, $stop, trim($line)), $this->verbose, __FILE__, __LINE__);
-              $result['bandwidth_values'][$start] += $bw;
-              $result['transfer'] += $mb;
-              if (isset($this->options['iperf_udp']) && isset($pieces[9])) {
-                if (!isset($result['jitter_values'][$start])) $result['jitter_values'][$start] = 0;
-                $result['jitter_values'][$start] = $pieces[9];
-              }
-              if (isset($this->options['iperf_udp']) && isset($pieces[12])) {
-                if (!isset($result['loss_values'][$start])) $result['loss_values'][$start] = 0;
-                $result['loss_values'][$start] = $pieces[12];
-              }
-            }
-            $lstart = $start;
           }
-          // add server values for jitter/loss
-          else if (isset($this->options['iperf_udp']) && !$result['jitter_values'] && isset($pieces[9])) {
-            print_msg(sprintf('Adding server jitter/datagram loss values %s/%s', $pieces[9], $pieces[12]), $this->verbose, __FILE__, __LINE__);
-            $result['jitter_values'][] = $pieces[9];
-            $result['loss_values'][] = $pieces[12];
-          }
-          // else print_msg(sprintf('Skipping line %s', trim($line)), $this->verbose, __FILE__, __LINE__);
+          else print_msg(sprintf('Unable to parse JSON results in %s', $ofile), $this->verbose, __FILE__, __LINE__, TRUE);
         }
-        if ($result) $results[] = $result;
+        // Iperf 2 CSV format
+        else {
+          $lstart = 0;
+          $result = array();
+          foreach(file($ofile) as $line) {
+            $pieces = explode(',', trim($line));
+            if (count($pieces) < 8) continue;
+
+            $span = explode('-', $pieces[6]);
+            $start = $span[0]*1;
+            $stop = $span[1]*1;
+
+            if (round($stop - $start) == $this->options['iperf_interval'] && $pieces[2] > 0) {
+              // change to downlink
+              if ($lstart && $start < $lstart && ($lstart - $start) > 5) {
+                $direction = 'down';
+                $results[] = $result;
+                $result = array();
+              }
+              if (!$result) {
+                print_msg(sprintf('Starting new row for %s', $pieces[3]), $this->verbose, __FILE__, __LINE__);
+                $result['bandwidth_direction'] = $direction;
+                $result['bandwidth_values'] = array();
+                $result['transfer'] = 0;
+                if (isset($this->options['iperf_udp'])) {
+                  $result['jitter_values'] = array();
+                  $result['loss_values'] = array();
+                }
+              }
+              if (!$this->options['iperf_warmup'] || $start >= $this->options['iperf_warmup']) {
+                if (!isset($result['bandwidth_values'][$start])) $result['bandwidth_values'][$start] = 0;
+                $bw = ($pieces[8]/1000)/1000;
+                $mb = ($pieces[7]/1024)/1024;
+                // print_msg(sprintf('Adding bandwidth value %s Mb/s, transfer %s MB for interval %d-%d; line %s', $bw, $mb, $start, $stop, trim($line)), $this->verbose, __FILE__, __LINE__);
+                $result['bandwidth_values'][$start] += $bw;
+                $result['transfer'] += $mb;
+                if (isset($this->options['iperf_udp']) && isset($pieces[9])) {
+                  if (!isset($result['jitter_values_arr'][$start])) $result['jitter_values_arr'][$start] = array();
+                  $result['jitter_values_arr'][$start][] = $pieces[9];
+                  $result['jitter_values'][$start] = get_mean($result['jitter_values_arr'][$start]);
+                }
+                if (isset($this->options['iperf_udp']) && isset($pieces[12])) {
+                  if (!isset($result['loss_values_arr'][$start])) $result['loss_values_arr'][$start] = array();
+                  $result['loss_values_arr'][$start][] = $pieces[12];
+                  $result['loss_values'][$start] = get_mean($result['loss_values_arr'][$start]);
+                }
+              }
+              $lstart = $start;
+            }
+            // add server values for jitter/loss
+            else if (isset($this->options['iperf_udp']) && !$result['jitter_values'] && isset($pieces[9])) {
+              print_msg(sprintf('Adding server jitter/datagram loss values %s/%s', $pieces[9], $pieces[12]), $this->verbose, __FILE__, __LINE__);
+              $result['jitter_values'][] = $pieces[9];
+              $result['loss_values'][] = $pieces[12];
+            }
+            // else print_msg(sprintf('Skipping line %s', trim($line)), $this->verbose, __FILE__, __LINE__);
+          }
+          if ($result) $results[] = $result; 
+        }
         
         // generate statistical values
         foreach(array_keys($results) as $i) {
@@ -1087,6 +1140,9 @@ class IperfTest {
           if (isset($this->options['ignore_uplink']) && $results[$i]['bandwidth_direction'] == 'up') print_msg(sprintf('Skipping uplink results for server %s because --ignore_uplink flag is set', $server['hostname']), $this->verbose, __FILE__, __LINE__);
           else {
             print_msg(sprintf('Adding result row for server %s with %d bandwidth values - median %s Mb/s', $server['hostname'], count($results[$i]['bandwidth_values']), $results[$i]['bandwidth_median']), $this->verbose, __FILE__, __LINE__);
+            $pieces = explode('>', $iperf);
+            $pieces = explode($this->iperf, $pieces[0]);
+            $results[$i]['iperf_cmd'] = $this->iperf . ' ' . trim($pieces[1]);
             $this->results[] = $results[$i];
             $success = TRUE; 
           }
@@ -1109,14 +1165,21 @@ class IperfTest {
    * dependencies (array is empty if all dependencies are valid)
    * @return array
    */
-  public static function validateDependencies($options) {
-    $dependencies = array('iperf' => 'iperf', 'zip' => 'zip');
+  public function validateDependencies($options) {
+    $dependencies = array('iperf' => 'iperf', 'iperf3' => 'iperf3', 'zip' => 'zip');
     // reporting dependencies
     if (!isset($options['noreport']) || !$options['noreport']) {
       $dependencies['gnuplot'] = 'gnuplot';
       if (!isset($options['nopdfreport']) || !$options['nopdfreport']) $dependencies['wkhtmltopdf'] = 'wkhtmltopdf';
     }
-    return validate_dependencies($dependencies);
+    $validated = validate_dependencies($dependencies);
+    // iperf3
+    if (!isset($validated['iperf3'])) {
+      if (isset($validated['iperf'])) unset($validated['iperf']);
+      $this->iperf = 'iperf3';
+    }
+    else if (!isset($validated['iperf'])) unset($validated['iperf3']);
+    return $validated;
   }
   
   /**
@@ -1131,7 +1194,7 @@ class IperfTest {
       'drop_final' => array('min' => 0),
       'font_size' => array('min' => 6, 'max' => 64),
       'output' => array('write' => TRUE),
-      'iperf_bandwidth' => array('regex' => '/^[0-9\.]+[km%]$/i'),
+      'iperf_bandwidth' => array('regex' => '/^[0-9\.]+[km%]\/?[0-9\.]*[km%]?$/i'),
       'iperf_interval' => array('min' => 1, 'max' => 60, 'required' => TRUE),
       'iperf_len' => array('regex' => '/^[0-9]+[km]$/i'),
       'iperf_listen' => array('min' => 1),
@@ -1170,3 +1233,4 @@ class IperfTest {
   }
 }
 ?>
+
