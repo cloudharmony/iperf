@@ -967,7 +967,7 @@ class IperfTest {
       $this->bandwidth[$host] = $bw;
       
       $iperf = sprintf('%s%s -c %s %s -i %d%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s >%s 2>&1',
-        !isset($this->options['iperf_num']) && !validate_dependencies(array('timeout' => 'timeout')) ? 'timeout -s 9 ' . (30 + ($this->options['iperf_time']*(isset($this->options['iperf_reverse']) ? 2 : 1))) . ' ' : '',
+        !isset($this->options['iperf_num']) && !validate_dependencies(array('timeout' => 'timeout')) ? 'timeout -s 9 ' . (30 + ($this->options['iperf_time']*(isset($this->options['iperf_reverse']) && !$iperf3 ? 2 : 1))) . ' ' : '',
         $this->iperf,
         $server['hostname'],
         $iperf3 ? '-J' : '-y C',
