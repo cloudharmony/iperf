@@ -964,7 +964,7 @@ class IperfTest {
       
       $this->bandwidth[$host] = $bw;
       
-      $iperf = sprintf('%s%s -c %s %s -i %d%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s >%s 2>&1',
+      $iperf = sprintf('%s%s -c %s %s -i %d%s%s%s%s%s%s%s%s%s%s%s%s%s%s >%s 2>&1',
         !isset($this->options['iperf_num']) && !validate_dependencies(array('timeout' => 'timeout')) ? 'timeout -s 9 ' . (30 + ($this->options['iperf_time']*(isset($this->options['iperf_reverse']) && !$iperf3 ? 2 : 1))) . ' ' : '',
         $this->iperf,
         $server['hostname'],
@@ -976,7 +976,7 @@ class IperfTest {
         isset($this->options['iperf_nodelay']) ? ' -N' : '',
         isset($this->options['iperf_num']) ? ' -n ' . $this->options['iperf_num'] : '',
         isset($server['port']) ? ' -p ' . $server['port'] : '',
-        isset($this->options['iperf_parallel']) ? ' -P ' . $this->options['iperf_parallel'] : '',
+        isset($this->options['iperf_parallel']) && $this->options['iperf_parallel'] > 1 ? ' -P ' . $this->options['iperf_parallel'] : '',
         !isset($this->options['iperf_num']) && $this->options['iperf_time'] != 10 ? ' -t ' . $this->options['iperf_time'] : '',
         isset($this->options['iperf_tos']) ? ' -S ' . $this->options['iperf_tos'] : '',
         isset($this->options['iperf_reverse']) ? ($iperf3 ? ' -R' : ' -r') : '',

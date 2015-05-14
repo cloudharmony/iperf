@@ -33,7 +33,7 @@ else if ($dependencies = $test->validateDependencies($options)) {
   exit(1);
 }
 
-print_msg(sprintf('Starting Ipef test'), $verbose, __FILE__, __LINE__);
+print_msg(sprintf('Starting Iperf test'), $verbose, __FILE__, __LINE__);
 $status = $test->test() ? 0 : 1;
 print_msg(sprintf('Exiting Iperf test with status code %d', $status), $verbose, __FILE__, __LINE__);
 

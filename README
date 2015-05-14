@@ -391,7 +391,7 @@ meta_instance_id*
 meta_hostname: [system under test (SUT) hostname]
 meta_memory
 meta_memory_gb: [memory in gigabytes]
-meta_memory_mb: [memory in megabyets]
+meta_memory_mb: [memory in megabytes]
 meta_os
 meta_provider
 meta_provider_id*
