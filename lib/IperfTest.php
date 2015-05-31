@@ -925,7 +925,7 @@ class IperfTest {
     $iperf3 = FALSE;
     $version = trim(shell_exec(sprintf('%s --version 2>&1', $this->iperf)));
     print_msg(sprintf('Got iperf version string: %s', $version), $this->verbose, __FILE__, __LINE__);
-    if (preg_match('/\s([0-9\.]+)/m', $version, $m)) {
+    if (preg_match('/iperf.*\s([2-3][0-9\.]+)/m', $version, $m)) {
       $this->options['iperf_version'] = $m[1];
       $iperf3 = substr($m[1], 0, 1) == 3;
     }
