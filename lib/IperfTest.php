@@ -923,7 +923,7 @@ class IperfTest {
     $this->getRunOptions();
     $rrdStarted = isset($this->options['collectd_rrd']) ? ch_collectd_rrd_start($this->options['collectd_rrd_dir'], $this->verbose) : FALSE;
     $iperf3 = FALSE;
-    if (preg_match('/\s([0-9\.]+)[\s\-C]/', trim(shell_exec(sprintf('%s --version 2>&1', $this->iperf))), $m)) {
+    if (preg_match('/\s([0-9\.]+)/m', trim(shell_exec(sprintf('%s --version 2>&1', $this->iperf))), $m)) {
       $this->options['iperf_version'] = $m[1];
       $iperf3 = substr($m[1], 0, 1) == 3;
     }
