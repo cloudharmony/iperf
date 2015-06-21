@@ -1143,7 +1143,7 @@ class IperfTest {
               $key = sprintf('%s_values', $attr);
               if (isset($nresults[$i][$key])) {
                 foreach(array_keys($nresults[$i][$key]) as $n) {
-                  if (isset($result[$key][$n])) $nresults[$i][$key]+= $result[$key][$n];
+                  if (isset($result[$key][$n])) $nresults[$i][$key][$n] += $result[$key][$n];
                 }
               }
             }
