@@ -15,6 +15,7 @@
   {"name": "cpu_server", "type": "float unsigned"},
   {"name": "iperf_bandwidth", "type": "char(8)"},
   {"name": "iperf_cmd", "type": "char(255)"},
+  {"name": "iperf_concurrency", "type": "tinyint unsigned"},
   {"name": "iperf_interval", "type": "tinyint unsigned"},
   {"name": "iperf_len", "type": "int unsigned"},
   {"name": "iperf_mss", "type": "int unsigned"},

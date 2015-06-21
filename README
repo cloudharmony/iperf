@@ -126,7 +126,20 @@ The following runtime parameters and environment metadata may be specified
                             Iperf v1-2 and 5201 for Iperf v3), the port may be 
                             appended preceded by a colon 
                             (e.g. 192.168.0.233:5999). This parameter may be 
-                            repeated to test multiple servers
+                            repeated to test multiple servers. 
+                            
+                            In networks with high bandwidth capacity 
+                            (> 15 Gb/s), a single Iperf server process may be 
+                            insufficient to reach max achievable bandwidth. As 
+                            a workaround, multiple Iperf server processes may 
+                            be started each listening on different ports. An
+                            server listening on multiple ports can be 
+                            designated using the format 
+                            --iperf_server [ip]:[port1]:[port2]:[portN]
+                            When designated, multiple concurrent Iperf clients 
+                            will be started each with the same parameters but 
+                            different server ports. Test results will then be 
+                            aggregated from all clients
                             
 * iperf_server_instance_id  The compute instance type identifier for the 
                             compute service corresponding to --iperf_server. If 
@@ -333,6 +346,8 @@ cpu_client: average total CPU utilization on the client (Iperf3 only)
 cpu_server: average total CPU utilization on the server (Iperf3 only)
 iperf_bandwidth
 iperf_cmd: iperf command used
+iperf_concurrency: number of concurrent Iperf server processes (see 
+                   --iperf_server parameter documentation above)
 iperf_interval
 iperf_len
 iperf_mss
