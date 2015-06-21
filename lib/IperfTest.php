@@ -1003,8 +1003,8 @@ class IperfTest {
           isset($this->options['iperf_reverse']) && !$iperf3 ? ' -L ' . $this->options['iperf_listen'] : '',
           $ofiles[$port]);
         $pieces = explode('>', $cmd);
-        $pieces = explode($this->perf . ' ', $pieces[0]);
-        $iperf .= ($iperf ? ' && ' : '') . $this->perf . ' ' . trim($pieces[0]);
+        $pieces = explode($this->iperf . ' ', $pieces[0]);
+        $iperf .= ($iperf ? ' && ' : '') . $this->iperf . ' ' . trim($pieces[0]);
         fwrite($fp, $cmd);
       }
       fwrite($fp, "wait\n");
