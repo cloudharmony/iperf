@@ -45,6 +45,11 @@ class IperfTest {
   private $bandwidth = array();
   
   /**
+   * used to track concurrency across allt ests
+   */
+  private $concurrency = array();
+  
+  /**
    * optional results directory object was instantiated for
    */
   private $dir;
@@ -612,7 +617,7 @@ class IperfTest {
           'test' =>     array('Test Protocol' => isset($this->options['iperf_udp']) ? 'UDP' : 'TCP',
                               'Direction' => $result ? ucwords($result['bandwidth_direction']) : implode(', ', array_keys($directions)),
                               'Duration' => isset($this->options['iperf_num']) ? $this->options['iperf_num'] . ' Buffers' : $this->options['iperf_time'] . ' secs',
-                              'Concurrency' => $result['iperf_concurrency'],
+                              'Concurrency' => isset($result['iperf_concurrency']) ? $result['iperf_concurrency'] : implode(', ', $this->concurrency),
                               'Connections' => $this->options['iperf_parallel'],
                               'UDP Bandwidth' => isset($this->options['iperf_udp']) ? $bw : 'N/A',
                               'Started' => $result ? $result['test_started'] : $earliest,
@@ -1202,6 +1207,7 @@ class IperfTest {
         else {
           print_msg(sprintf('Adding result row for server %s with %d bandwidth values - median %s Mb/s', $server['hostname'], count($results[$i]['bandwidth_values']), $results[$i]['bandwidth_median']), $this->verbose, __FILE__, __LINE__);
           $results[$i]['iperf_cmd'] = $iperf;
+          if (isset($results[$i]['iperf_concurrency']) && !in_array($results[$i]['iperf_concurrency'], $this->concurrency)) $this->concurrency[] = $results[$i]['iperf_concurrency'];
           $this->results[] = $results[$i];
           $success = TRUE; 
         }
