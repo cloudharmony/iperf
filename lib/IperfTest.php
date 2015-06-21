@@ -1004,6 +1004,7 @@ class IperfTest {
       }
       fwrite($fp, "wait\n");
       fclose($fp);
+      exec(sprintf('chmod 755 %s', $script));
       print_msg(sprintf('Testing server %s with %d concurrent clients using script %s', $server['hostname'], count($server['ports']), $script), $this->verbose, __FILE__, __LINE__);
       $started = date(self::IPERF_DB_DATE_FORMAT);
       passthru($script);
