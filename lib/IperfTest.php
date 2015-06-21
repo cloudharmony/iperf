@@ -1002,7 +1002,8 @@ class IperfTest {
           isset($this->options['iperf_zerocopy']) && $iperf3 ? ' -Z' : '',
           isset($this->options['iperf_reverse']) && !$iperf3 ? ' -L ' . $this->options['iperf_listen'] : '',
           $ofiles[$port]);
-        $iperf .= ($iperf ? '; ' : '') . $cmd;
+        $pieces = explode('>', $cmd);
+        $iperf .= ($iperf ? '; ' : '') . trim($pieces[0]);
         fwrite($fp, $cmd);
       }
       fwrite($fp, "wait\n");
@@ -1199,9 +1200,7 @@ class IperfTest {
         if (isset($this->options['ignore_uplink']) && $results[$i]['bandwidth_direction'] == 'up') print_msg(sprintf('Skipping uplink results for server %s because --ignore_uplink flag is set', $server['hostname']), $this->verbose, __FILE__, __LINE__);
         else {
           print_msg(sprintf('Adding result row for server %s with %d bandwidth values - median %s Mb/s', $server['hostname'], count($results[$i]['bandwidth_values']), $results[$i]['bandwidth_median']), $this->verbose, __FILE__, __LINE__);
-          $pieces = explode('>', $iperf);
-          $pieces = explode($this->iperf, $pieces[0]);
-          $results[$i]['iperf_cmd'] = $this->iperf . ' ' . trim($pieces[1]);
+          $results[$i]['iperf_cmd'] = $iperf;
           $results[$i]['iperf_concurrency'] = count(explode(' && ', $results[$i]['iperf_cmd']));
           $this->results[] = $results[$i];
           $success = TRUE; 
