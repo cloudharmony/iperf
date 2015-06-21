@@ -612,8 +612,8 @@ class IperfTest {
           'test' =>     array('Test Protocol' => isset($this->options['iperf_udp']) ? 'UDP' : 'TCP',
                               'Direction' => $result ? ucwords($result['bandwidth_direction']) : implode(', ', array_keys($directions)),
                               'Duration' => isset($this->options['iperf_num']) ? $this->options['iperf_num'] . ' Buffers' : $this->options['iperf_time'] . ' secs',
-                              'Warmup' => isset($this->options['iperf_warmup']) && $this->options['iperf_warmup'] > 0 ? $this->options['iperf_warmup'] . ' secs' : 'None',
-                              'Threads' => $this->options['iperf_parallel'],
+                              'Concurrency' => $result['iperf_concurrency'],
+                              'Connections' => $this->options['iperf_parallel'],
                               'UDP Bandwidth' => isset($this->options['iperf_udp']) ? $bw : 'N/A',
                               'Started' => $result ? $result['test_started'] : $earliest,
                               'Ended' => $result ? $result['test_stopped'] : $latest),
@@ -974,13 +974,14 @@ class IperfTest {
       
       $this->bandwidth[$host] = $bw;
       
+      $iperf = '';
       $ofiles = array();
       $script = $ofile . '.sh';
       $fp = fopen($script, 'w');
       fwrite($fp, "#!/bin/bash\n");
       foreach($server['ports'] as $port) {
         $ofiles[$port] = sprintf('%s%s', $ofile, $port ? '.' . $port : '');
-        fwrite($fp, sprintf("%s%s -c %s %s -i %d%s%s%s%s%s%s%s%s%s%s%s%s%s%s >%s 2>&1 &\n",
+        $cmd = sprintf("%s%s -c %s %s -i %d%s%s%s%s%s%s%s%s%s%s%s%s%s%s >%s 2>&1 &\n",
           !isset($this->options['iperf_num']) && !validate_dependencies(array('timeout' => 'timeout')) ? 'timeout -s 9 ' . (30 + ($this->options['iperf_time']*(isset($this->options['iperf_reverse']) && !$iperf3 ? 2 : 1))) . ' ' : '',
           $this->iperf,
           $server['hostname'],
@@ -1000,7 +1001,9 @@ class IperfTest {
           isset($this->options['iperf_window']) ? ' -w ' . $this->options['iperf_window'] : '',
           isset($this->options['iperf_zerocopy']) && $iperf3 ? ' -Z' : '',
           isset($this->options['iperf_reverse']) && !$iperf3 ? ' -L ' . $this->options['iperf_listen'] : '',
-          $ofiles[$port]));
+          $ofiles[$port]);
+        $iperf .= ($iperf ? '; ' : '') . $cmd;
+        fwrite($fp, $cmd);
       }
       fwrite($fp, "wait\n");
       fclose($fp);
