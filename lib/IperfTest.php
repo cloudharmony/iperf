@@ -1173,6 +1173,10 @@ class IperfTest {
           if (isset($results[$i][$key]) && !count($results[$i][$key])) unset($results[$i][$key]);
           if (isset($results[$i][$key])) {
             $results[$i][$key] = array_values($results[$i][$key]);
+            // use mean for jitter and loss when concurrency > 1
+            if ($attr != 'bandwidth' && $results[$i]['iperf_concurrency'] > 1) {
+              foreach(array_keys($results[$i][$key]) as $x) $results[$i][$key][$x] = $results[$i][$key][$x]/$results[$i]['iperf_concurrency'];
+            }
             if (isset($this->options['drop_final']) && $this->options['drop_final'] > 0 && count($results[$i][$key]) > $this->options['drop_final']) {
               print_msg(sprintf('Removing final %d metrics from %s with %d metrics', $this->options['drop_final'], $attr, count($results[$i][$key])), $this->verbose, __FILE__, __LINE__);
               $results[$i][$key] = array_slice($results[$i][$key], 0, $this->options['drop_final']*-1);
