@@ -1202,7 +1202,6 @@ class IperfTest {
         else {
           print_msg(sprintf('Adding result row for server %s with %d bandwidth values - median %s Mb/s', $server['hostname'], count($results[$i]['bandwidth_values']), $results[$i]['bandwidth_median']), $this->verbose, __FILE__, __LINE__);
           $results[$i]['iperf_cmd'] = $iperf;
-          $results[$i]['iperf_concurrency'] = count(explode(' && ', $results[$i]['iperf_cmd']));
           $this->results[] = $results[$i];
           $success = TRUE; 
         }
