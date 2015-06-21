@@ -837,7 +837,7 @@ class IperfTest {
           $server['hostname'] = $pieces[0];
           for($n=1; $n<count($pieces); $n++) {
             if (isset($pieces[$n]) && is_numeric($pieces[$n]) && $pieces[$n] > 0) {
-              $port = $pieces[1]*1;
+              $port = $pieces[$n]*1;
               if (!isset($server['ports'])) $server['ports'] = array();
               if (!in_array($port, $server['ports'])) $server['ports'][] = $port;
             }
@@ -853,7 +853,7 @@ class IperfTest {
             $server[$attr] = $val;
           }
           $this->servers[$hostname] = $server;
-          print_msg(sprintf('Added server %s with ports %s to test endpoints', $hostname, implode(', ', $server['ports'])), $this->verbose, __FILE__, __LINE__);
+          print_msg(sprintf('Added server %s with ports %s to test endpoints', $server['hostname'], implode(', ', $server['ports'])), $this->verbose, __FILE__, __LINE__);
         }
       }
     }
