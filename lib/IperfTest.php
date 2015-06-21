@@ -853,6 +853,7 @@ class IperfTest {
             $server[$attr] = $val;
           }
           $this->servers[$hostname] = $server;
+          print_msg(sprintf('Added server %s with ports %s to test endpoints', $hostname, implode(', ', $server['ports'])), $this->verbose, __FILE__, __LINE__);
         }
       }
     }
@@ -998,7 +999,7 @@ class IperfTest {
           isset($this->options['iperf_window']) ? ' -w ' . $this->options['iperf_window'] : '',
           isset($this->options['iperf_zerocopy']) && $iperf3 ? ' -Z' : '',
           isset($this->options['iperf_reverse']) && !$iperf3 ? ' -L ' . $this->options['iperf_listen'] : '',
-          $ofiles[count($ofiles) - 1]);
+          $ofiles[$port]);
       }
       print_msg(sprintf('Testing server %s with %d concurrent clients using %s', $server['hostname'], count($server['ports']), $iperf), $this->verbose, __FILE__, __LINE__);
       $started = date(self::IPERF_DB_DATE_FORMAT);
