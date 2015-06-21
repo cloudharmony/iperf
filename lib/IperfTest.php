@@ -974,12 +974,13 @@ class IperfTest {
       
       $this->bandwidth[$host] = $bw;
       
-      $iperf = '';
       $ofiles = array();
+      $script = $ofile . '.sh';
+      $fp = fopen($script, 'w');
+      fwrite($fp, "#!/bin/bash\n");
       foreach($server['ports'] as $port) {
         $ofiles[$port] = sprintf('%s%s', $ofile, $port ? '.' . $port : '');
-        $iperf .= sprintf('%s%s%s -c %s %s -i %d%s%s%s%s%s%s%s%s%s%s%s%s%s%s >%s 2>&1',
-          $iperf ? ' && ' : '',
+        fwrite($fp, sprintf("%s%s -c %s %s -i %d%s%s%s%s%s%s%s%s%s%s%s%s%s%s >%s 2>&1 &\n",
           !isset($this->options['iperf_num']) && !validate_dependencies(array('timeout' => 'timeout')) ? 'timeout -s 9 ' . (30 + ($this->options['iperf_time']*(isset($this->options['iperf_reverse']) && !$iperf3 ? 2 : 1))) . ' ' : '',
           $this->iperf,
           $server['hostname'],
@@ -999,13 +1000,16 @@ class IperfTest {
           isset($this->options['iperf_window']) ? ' -w ' . $this->options['iperf_window'] : '',
           isset($this->options['iperf_zerocopy']) && $iperf3 ? ' -Z' : '',
           isset($this->options['iperf_reverse']) && !$iperf3 ? ' -L ' . $this->options['iperf_listen'] : '',
-          $ofiles[$port]);
+          $ofiles[$port]));
       }
-      print_msg(sprintf('Testing server %s with %d concurrent clients using %s', $server['hostname'], count($server['ports']), $iperf), $this->verbose, __FILE__, __LINE__);
+      fwrite($fp, "wait\n");
+      fclose($fp);
+      print_msg(sprintf('Testing server %s with %d concurrent clients using script %s', $server['hostname'], count($server['ports']), $script), $this->verbose, __FILE__, __LINE__);
       $started = date(self::IPERF_DB_DATE_FORMAT);
-      passthru($iperf);
+      passthru($script);
       $stopped = date(self::IPERF_DB_DATE_FORMAT);
       print_msg(sprintf('Iperf testing completed successfully for server %s', $server['hostname']), $this->verbose, __FILE__, __LINE__);
+      exec(sprintf('rm -f %s', $script));
       
       foreach($ofiles as $port => $ofile) {
         if (!isset($results[$port])) $results[$port] = array();
