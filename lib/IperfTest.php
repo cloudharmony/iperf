@@ -459,6 +459,7 @@ class IperfTest {
         if (IperfTest::wkhtmltopdfInstalled()) {
           $cmd = sprintf('%swkhtmltoimage %s %s >/dev/null 2>&1', isset($this->options['wkhtml_xvfb']) ? 'xvfb-run ' : '', $img, $png = str_replace('.svg', '.png', $img));
           $ecode = trim(exec($cmd));
+          sleep(1);
           if (!file_exists($png) || !filesize($png)) print_msg(sprintf('Unable to convert SVG image %s to PNG %s (exit code %d)', $img, $png, $ecode), $this->verbose, __FILE__, __LINE__, TRUE);
           else {
             exec(sprintf('rm -f %s', $img));
