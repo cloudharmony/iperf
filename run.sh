@@ -251,6 +251,11 @@ The following runtime parameters and environment metadata may be specified
                             working directory will be used
 
 --verbose                   Show verbose output
+
+--wkhtml_xvfb               If set, wkhtmlto* commands will be prefixed with 
+                            xvfb-run (which is added as a dependency). This is
+                            useful when the wkhtml installation does not 
+                            support running in headless mode
                             
                             
 DEPENDENCIES
@@ -262,6 +267,9 @@ php         Test automation scripts (/usr/bin/php)
 
 wkhtmltopdf Generates PDF version of report - download from 
             http://wkhtmltopdf.org (required unless --nopdfreport set)
+            
+xvfb-run    Allows wkhtmltopdf to be run in headless mode (required if 
+            --nopdfreport is not set and --wkhtml_xvfb is set)
 
 zip         Used to compress test artifacts (collectd-rrd.zip and report.zip)
 

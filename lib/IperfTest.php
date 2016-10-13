@@ -131,7 +131,7 @@ class IperfTest {
       if ($this->generateReport($tdir) && file_exists(sprintf('%s/index.html', $tdir))) {
         if (!isset($this->options['nopdfreport'])) {
           print_msg('Generating PDF report using wkhtmltopdf', $this->verbose, __FILE__, __LINE__);
-          $cmd = sprintf('cd %s; wkhtmltopdf -s Letter --footer-left [date] --footer-right [page] --footer-font-name rfont --footer-font-size %d index.html report.pdf >/dev/null 2>&1; echo $?', $tdir, $this->options['font_size']);
+          $cmd = sprintf('cd %s; %swkhtmltopdf -s Letter --footer-left [date] --footer-right [page] --footer-font-name rfont --footer-font-size %d index.html report.pdf >/dev/null 2>&1; echo $?', $tdir, isset($this->options['wkhtml_xvfb']) ? 'xvfb-run ' : '', $this->options['font_size']);
           $ecode = trim(exec($cmd));
           if ($ecode > 0) print_msg(sprintf('Failed to generate PDF report'), $this->verbose, __FILE__, __LINE__, TRUE);
           else {
@@ -457,7 +457,7 @@ class IperfTest {
         print_msg(sprintf('Generated line chart %s successfully', $img), $this->verbose, __FILE__, __LINE__);
         // attempt to convert to PNG using wkhtmltoimage
         if (IperfTest::wkhtmltopdfInstalled()) {
-          $cmd = sprintf('wkhtmltoimage %s %s >/dev/null 2>&1', $img, $png = str_replace('.svg', '.png', $img));
+          $cmd = sprintf('%swkhtmltoimage %s %s >/dev/null 2>&1', isset($this->options['wkhtml_xvfb']) ? 'xvfb-run ' : '', $img, $png = str_replace('.svg', '.png', $img));
           $ecode = trim(exec($cmd));
           if ($ecode > 0 || !file_exists($png) || !filesize($png)) print_msg(sprintf('Unable to convert SVG image %s to PNG %s (exit code %d)', $img, $png, $ecode), $this->verbose, __FILE__, __LINE__, TRUE);
           else {
@@ -815,7 +815,8 @@ class IperfTest {
           'output:',
           'skip_bandwidth_graphs',
           'tcp_bw_file:',
-          'v' => 'verbose'
+          'v' => 'verbose',
+          'wkhtml_xvfb'
         );
         $this->options = parse_args($opts, array('iperf_server', 
                                                  'iperf_server_instance_id', 
@@ -1235,7 +1236,10 @@ class IperfTest {
     // reporting dependencies
     if (!isset($options['noreport']) || !$options['noreport']) {
       $dependencies['gnuplot'] = 'gnuplot';
-      if (!isset($options['nopdfreport']) || !$options['nopdfreport']) $dependencies['wkhtmltopdf'] = 'wkhtmltopdf';
+      if (!isset($options['nopdfreport']) || !$options['nopdfreport']) {
+        $dependencies['wkhtmltopdf'] = 'wkhtmltopdf';
+        if (isset($options['wkhtml_xvfb'])) $dependencies['xvfb-run'] = 'xvfb';
+      }
     }
     $validated = validate_dependencies($dependencies);
     // iperf3
