@@ -249,6 +249,16 @@ The following runtime parameters and environment metadata may be specified
 --output                    The output directory to use for writing test data 
                             (logs and artifacts). If not specified, the current 
                             working directory will be used
+                            
+--skip_bandwidth_graphs     If set along with --iperf_reverse, bandwidth graphs 
+                            will be skipped in the report
+
+--tcp_bw_file               Optional path to a file where TCP bandwidth results
+                            for every tested server should be saved. This is 
+                            required for use of a percentage in the 
+                            --iperf_bandwidth parameter (see above)
+
+--tcp_bw_file_purge         Delete the tcp_bw_file if it already exists
 
 --verbose                   Show verbose output
 

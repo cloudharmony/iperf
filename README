@@ -290,6 +290,8 @@ The following runtime parameters and environment metadata may be specified
                             for every tested server should be saved. This is 
                             required for use of a percentage in the 
                             --iperf_bandwidth parameter (see above)
+                            
+* tcp_bw_file_purge         Delete the tcp_bw_file if it already exists
 
 * verbose                   Show verbose output
 

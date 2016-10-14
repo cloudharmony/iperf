@@ -817,6 +817,7 @@ class IperfTest {
           'output:',
           'skip_bandwidth_graphs',
           'tcp_bw_file:',
+          'tcp_bw_file_purge',
           'v' => 'verbose',
           'wkhtml_xvfb'
         );
@@ -956,24 +957,27 @@ class IperfTest {
         // check for prior TCP bandwidth results
         $bw = NULL;
         if (isset($this->options['tcp_bw_file']) && file_exists($this->options['tcp_bw_file'])) {
-          $prior = array();
-          $fp = fopen($this->options['tcp_bw_file'], 'r');
-          while($line = fgets($fp)) {
-            $pieces = explode('/', $line);
-            if ($host == $pieces[0] && isset($pieces[2]) && $pieces[2] > 0) {
-              if (!isset($prior[$pieces[1]])) $prior[$pieces[1]] = array();
-              $prior[$pieces[1]][] = $pieces[2]*1;
-            }
-          }
-          fclose($fp);
-          if (isset($prior['down']) || isset($prior['up'])) {
-            $prior = isset($prior['down']) ? $prior['down'] : $prior['up'];
-            $bw = round(get_mean($prior)*($m[1]*0.01)) . 'M';
-            print_msg(sprintf('Set UDP bandwidth dynamically to %s for server %s and --iperf_bandwidth %s from prior TCP bandwidth metrics [%s]', $bw, $host, $this->options['iperf_bandwidth'], implode(', ', $prior)), $this->verbose, __FILE__, __LINE__);
-          }
+          if (isset($this->options['tcp_bw_file_purge'])) unlink($this->options['tcp_bw_file']);
           else {
-            $bw = isset($bwv[1]) ? $bwv[1] : '1M';
-            print_msg(sprintf('Unable to set UDP bandwidth dynamically for server %s because not prior TCP Iperf metrics are present in %s - using %s instead', $host, $this->options['tcp_bw_file'], $bw), $this->verbose, __FILE__, __LINE__);
+            $prior = array();
+            $fp = fopen($this->options['tcp_bw_file'], 'r');
+            while($line = fgets($fp)) {
+              $pieces = explode('/', $line);
+              if ($host == $pieces[0] && isset($pieces[2]) && $pieces[2] > 0) {
+                if (!isset($prior[$pieces[1]])) $prior[$pieces[1]] = array();
+                $prior[$pieces[1]][] = $pieces[2]*1;
+              }
+            }
+            fclose($fp);
+            if (isset($prior['down']) || isset($prior['up'])) {
+              $prior = isset($prior['down']) ? $prior['down'] : $prior['up'];
+              $bw = round(get_mean($prior)*($m[1]*0.01)) . 'M';
+              print_msg(sprintf('Set UDP bandwidth dynamically to %s for server %s and --iperf_bandwidth %s from prior TCP bandwidth metrics [%s]', $bw, $host, $this->options['iperf_bandwidth'], implode(', ', $prior)), $this->verbose, __FILE__, __LINE__);
+            }
+            else {
+              $bw = isset($bwv[1]) ? $bwv[1] : '1M';
+              print_msg(sprintf('Unable to set UDP bandwidth dynamically for server %s because not prior TCP Iperf metrics are present in %s - using %s instead', $host, $this->options['tcp_bw_file'], $bw), $this->verbose, __FILE__, __LINE__);
+            } 
           }
         }
       }
