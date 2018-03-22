@@ -22,7 +22,7 @@ sleep(5);
 require_once(dirname(__FILE__) . '/IperfTest.php');
 require_once(dirname(__FILE__) . '/benchmark/save/BenchmarkDb.php');
 $status = 1;
-$args = parse_args(array('iteration:', 'nostore_html', 'nostore_pdf', 'nostore_rrd', 'v' => 'verbose'));
+$args = parse_args(array('iteration:', 'nostore_html', 'nostore_pdf', 'nostore_rrd', 'v' => 'verbose'), NULL, 'save_');
 
 // get result directories => each directory stores 1 iteration of results
 $dirs = array();
