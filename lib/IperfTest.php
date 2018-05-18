@@ -444,17 +444,17 @@ class IperfTest {
       exec(sprintf('chmod +x %s', $script));
       $cmd = sprintf('cd %s; ./%s > %s 2>/dev/null; echo $?', $dir, basename($script), basename($img));
       $ecode = trim(exec($cmd));
-      // exec('rm -f %s', $script);
-      // exec('rm -f %s', $dfile);
       if ($ecode > 0) {
         // exec('rm -f %s', $img);
         // passthru(sprintf('cd %s; ./%s > %s', $dir, basename($script), basename($img)));
         // print_r($coords);
         // echo $cmd;
         // exit;
-        print_msg(sprintf('Failed to generate line chart - exit code %d', $ecode), $this->verbose, __FILE__, __LINE__, TRUE);
+        print_msg(sprintf('Failed to generate line chart - exit code %d: %s', $ecode, str_replace('2>/dev/null; echo $?', '', $cmd)), $this->verbose, __FILE__, __LINE__, TRUE);
       }
       else {
+        exec('rm -f %s', $script);
+        exec('rm -f %s', $dfile);
         print_msg(sprintf('Generated line chart %s successfully', $img), $this->verbose, __FILE__, __LINE__);
         // attempt to convert to PNG using wkhtmltoimage
         if (IperfTest::wkhtmltopdfInstalled()) {
