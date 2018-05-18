@@ -450,7 +450,8 @@ class IperfTest {
         // print_r($coords);
         // echo $cmd;
         // exit;
-        print_msg(sprintf('Failed to generate line chart - exit code %d: %s', $ecode, str_replace('2>/dev/null; echo $?', '', $cmd)), $this->verbose, __FILE__, __LINE__, TRUE);
+        passthru(str_replace('2>/dev/null; echo $?', '', $cmd));
+        print_msg(sprintf('Failed to generate line chart - exit code %d', $ecode), $this->verbose, __FILE__, __LINE__, TRUE);
       }
       else {
         exec('rm -f %s', $script);
