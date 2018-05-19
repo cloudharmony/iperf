@@ -360,12 +360,13 @@ class IperfTest {
           $yStep = round($yDiff/$yTics, 3);
           if (!isset($settings['yFloatPrec'])) $yFloatPrec = 3;
         }
+        if ($yStep < 1) $yStep = 1;
       }
       
       $img = sprintf('%s/%s.svg', $dir, $prefix);
       print_msg(sprintf('Generating line chart %s with %d data sets and %d points/set. X Label: %s; Y Label: %s; Title: %s; xMax: %s; xStep %s; yMax: %s; yStep: %s', basename($img), count($coords), $maxPoints, $xlabel, $ylabel, $title, $xMax, $xStep, $yMax, $yStep), $this->verbose, __FILE__, __LINE__);
       
-      $gnuplotVersion = preg_match('/\s([4-6]\.[0-9]+)\s/', trim(shell_exec('gnuplot --version')), $m) ? $m[1]*1 : NULL;
+      $gnuplotVersion = preg_match('/\s([4-6]\.[0-9]+)/', trim(shell_exec('gnuplot --version')), $m) ? $m[1]*1 : NULL;
       fwrite($fp, sprintf("#!%s\n", trim(shell_exec('which gnuplot'))));
       fwrite($fp, "reset\n");
       fwrite($fp, sprintf("set terminal svg dashed size 1024,%d%s font 'rfont,%d'\n", isset($settings['height']) ? $settings['height'] : 600, !$gnuplotVersion || $gnuplotVersion < 5.2 ? " fontfile 'font-svg.css'" : '', $this->options['font_size']+4));
