@@ -84,11 +84,11 @@ The following runtime parameters and environment metadata may be specified
                             
 --iperf_parallel            The number of simultaneous connections to make to 
                             the server. Default is 1. Requires thread support 
-                            on both the client and server. May contain {cpus} 
+                            on both the client and server. May contain [cpus] 
                             which will be automatically replaced with the 
                             number of CPU cores. May also contain an equation 
                             which will be automatically evaluated (e.g. 
-                            --iperf_parallel "{cpus}*2")
+                            --iperf_parallel "[cpus]*2")
 
 --iperf_server              IP address or hostname for the Iperf server(s) to 
                             test. If a server uses a non-default port (5001 for 
