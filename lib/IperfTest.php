@@ -914,6 +914,7 @@ class IperfTest {
         $step = round($diff/8, 3);
       }
       
+      if (!$step) $step = 1;
       print_msg(sprintf('Generating histogram coords with vmax=%s; vmin=%s; min=%s; max=%s; step=%s', $vmax, $vmin, $min, $max, $step), $this->verbose, __FILE__, __LINE__);
       
       for($start=$min; $start<$max; $start+=$step) {
