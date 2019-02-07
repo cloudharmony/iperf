@@ -3,6 +3,8 @@ Iperf Benchmark
 This repository provides an execution wrapper for the Iperf network benchmark
 utilities.
 
+NOTE: When cloning this repository, please use the --recurse-submodules option
+to also pull the https://github.com/cloudharmony/benchmark submodule.
 
 RUNTIME PARAMETERS
 The following runtime parameters and environment metadata may be specified 
